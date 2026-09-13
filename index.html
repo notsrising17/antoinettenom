@@ -1609,7 +1609,7 @@ function seasonEarly(){
    it is the performer's own call.
    ============================================================ */
 const ROSTER_SOURCED = "13 September 2026";
-const ROSTER_VERSION = 2;   // bump when the roster below is recompiled
+const ROSTER_VERSION = 3;   // bump when the roster below is recompiled
 
 function seedSeason(){
   const built = [];
@@ -1643,9 +1643,28 @@ function seedInto(target){
 
     S("School Girls; Or, The African Mean Girls Play", "new-play", "Samuel J. Friedman Theatre", "2026-09-28", "Jocelyn Bioh",
       {direction:c("Whitney White")},
-      [["Patina Miller", "", "unset", "actress"],
+      [["Denée Benton", "", "unset", "actress"],
+       ["Patina Miller", "", "unset", "actress"],
        ["Jasmine Amy Rogers", "", "unset", "actress"],
-       ["Denée Benton", "", "unset", "actress"]]),
+       ["Heather Alicia Simms", "", "unset", "actress"],
+       ["Lucia Aremu", "", "unset"],
+       ["Erin Morton", "", "unset"],
+       ["Nia Otchere-Sarfo", "", "unset"],
+       ["Jordan Rice", "", "unset"]]),
+
+    S("Here There Are Blueberries", "new-play", "Ethel Barrymore Theatre", "2026-11-09", "Moisés Kaufman and Amanda Gronich",
+      {direction:c("Moisés Kaufman")}, []),
+
+    S("Downstate", "new-play", "Booth Theatre", "2026-11-15", "Bruce Norris",
+      {direction:c("Joe Mantello")},
+      [["Cassie Beck", "", "unset", "actress"],
+       ["K. Todd Freeman", "", "unset", "actor"],
+       ["Francis Guinan", "", "unset", "actor"],
+       ["Adrian Martinez", "", "unset", "actor"],
+       ["Thomas Sadoski", "", "unset", "actor"],
+       ["Ivy Wolk", "", "unset", "actress"],
+       ["Liza Colón-Zayas", "", "unset", "actress"],
+       ["Al’Jaleel McGhee", "", "unset"]]),
 
     S("Other Desert Cities", "revival-play", "Hudson Theatre", "2026-10-18", "Jon Robin Baitz",
       {direction:c("John Benjamin Hickey")},
@@ -1719,7 +1738,9 @@ function seedInto(target){
 
     S("Inter Alia", "new-play", "Music Box Theatre", "2026-12-01", "Suzie Miller",
       {direction:c("Justin Martin")},
-      [["Rosamund Pike", "Jessica Parks", "leading", "actress"]]),
+      [["Rosamund Pike", "Jessica Parks", "leading", "actress"],
+       ["Jamie Glover", "", "unset", "actor"],
+       ["Cormac McAlinden", "", "unset"]]),
 
     S("Galileo", "new-musical", "Sam S. Shubert Theatre", "2026-12-06", "Danny Strong, Zoe Sarnak and Michael Weiner",
       {direction:c("Michael Mayer"), book:c("Danny Strong"),
@@ -1727,6 +1748,14 @@ function seedInto(target){
       [["Raúl Esparza", "Galileo Galilei", "leading", "actor"],
        ["Joy Woods", "Galileo's daughter", "unset", "actress"],
        ["Jeremy Kushnier", "", "unset", "actor"]]),
+
+    S("Awake and Sing!", "revival-play", "Samuel J. Friedman Theatre", "2027-01-07", "Clifford Odets",
+      {direction:c("Tyne Rafaeli")},
+      [["Danny Burstein", "", "unset", "actor"],
+       ["Micaela Diamond", "", "unset", "actress"],
+       ["Jessica Hecht", "", "unset", "actress"],
+       ["Will Pullen", "", "unset", "actor"],
+       ["Jeremy Shamos", "", "unset", "actor"]]),
 
     S("Dolly: A True Original Musical", "new-musical", "St. James Theatre", "2027-01-19", "Dolly Parton and Maria S. Schlatter",
       {direction:c("Bartlett Sher"), book:c("Dolly Parton and Maria S. Schlatter"),
@@ -1746,12 +1775,24 @@ function seedInto(target){
        ["François Arnaud", "", "unset", "actor"],
        ["Yvonne Strahovski", "", "unset", "actress"]]),
 
+    S("Small Mouth Sounds", "new-play", "Ethel Barrymore Theatre", "2027-03-18", "Bess Wohl",
+      {direction:c("Joe Mantello")},
+      [["Julia Roberts", "", "unset", "actress"],
+       ["Paul Rudd", "", "unset", "actor"],
+       ["Sarah Paulson", "", "unset", "actress"],
+       ["Martin Freeman", "", "unset", "actor"],
+       ["Greta Lee", "", "unset", "actress"],
+       ["Isaac Powell", "", "unset", "actor"]]),
+
     S("Evita", "revival-musical", "Winter Garden Theatre", "2027-03-25", "Andrew Lloyd Webber and Tim Rice",
       {direction:c("Jamie Lloyd"), choreography:c("Fabian Aloise")},
       [["Rachel Zegler", "Eva Perón", "leading", "actress"]]),
 
     S("Gloria", "new-play", "Hayes Theater", "2027-04-05", "Branden Jacobs-Jenkins",
       {direction:c("Evan Cabnet")}, []),
+
+    S("Purple Rain", "new-musical", "Majestic Theatre", "2027-04-12", "Prince and Peter Duchan",
+      {direction:c("Saheem Ali"), book:c("Peter Duchan"), score:c("Prince")}, []),
 
     S("The Sound of Music", "revival-musical", "Vivian Beaumont Theater", "2027-04-15", "Rodgers and Hammerstein",
       {direction:c("Lear deBessonet"), choreography:c("Christopher Gattelli")},
@@ -1775,9 +1816,15 @@ function seedInto(target){
       [["Laura Linney", "Roxy Margaux", "leading", "actress"]]),
 
     S("Warriors", "new-musical", "Lunt-Fontanne Theatre", "", "Lin-Manuel Miranda and Eisa Davis",
-      {direction:c("Jenny Koons"), book:c("Lin-Manuel Miranda and Eisa Davis"),
+      {direction:c("Jenny Koons and Andy Blankenbuehler"), book:c("Lin-Manuel Miranda and Eisa Davis"),
        score:c("Lin-Manuel Miranda and Eisa Davis"), choreography:c("Andy Blankenbuehler")},
-      [])
+      []),
+
+    S("Let the Good Times Roll", "new-musical", "", "", "Jack Viertel",
+      {direction:c("Sara Edwards")}, [],
+      {scoreEligible:false}),
+
+    S("Private Lives", "revival-play", "", "", "Noël Coward", {}, [])
   );
 }
 
