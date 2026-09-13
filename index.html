@@ -631,6 +631,11 @@ let cloudDown = false;    // a read failed: show what we have, refuse to write o
 /* Documents carrying edits the server has not confirmed. An inbound snapshot
    must not roll these back underneath the nominator's hands. */
 const dirty = new Set();
+const revisions = new Map(), writes = new Map();
+let rootDb = null, storeEpoch = 0, replacing = false;
+function scopedStore(root, prefix){
+  return {doc:path => root.doc(prefix + path), collection:path => root.collection(prefix + path)};
+}
 
 function markSaving(){ saveState.pending++; paintSaveState(); }
 const dirtyKey = (kind, id) => kind + ":" + (id || "");
@@ -761,7 +766,7 @@ function validateLedger(d){
     for (const field of ["title", "theatre", "author", "seen", "opened", "verdict", "memory"]){
       if (show[field] !== undefined && typeof show[field] !== "string") errors.push(where + " has a damaged " + field + " field.");
     }
-    if (show.type !== undefined && !TYPES[show.type]) errors.push(where + " has an unknown category: " + String(show.type) + ".");
+    if (show.type !== undefined && !Object.prototype.hasOwnProperty.call(TYPES, show.type)) errors.push(where + " has an unknown category: " + String(show.type) + ".");
     if (show.crafts !== undefined && !isObj(show.crafts)) errors.push(where + " has damaged element credits.");
     if (show.performances !== undefined && !Array.isArray(show.performances)) errors.push(where + " has a damaged cast list.");
     else if (Array.isArray(show.performances)){
@@ -771,6 +776,48 @@ function validateLedger(d){
       });
     }
   });
+  const textFields = (obj, fields, label) => {
+    for (const field of fields) if (obj[field] !== undefined && typeof obj[field] !== "string") errors.push(label + ": invalid " + field);
+  };
+  const identifier = value => typeof value === "string" && /^[A-Za-z0-9_-]+$/.test(value);
+  const score = v => v === undefined || (typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 10);
+  if (isObj(d.meta)){
+    for (const field of ["eligibleTotal","rosterVersion","dataVersion"]) if (d.meta[field] !== undefined && (typeof d.meta[field] !== "number" || !Number.isFinite(d.meta[field]) || d.meta[field] < 0)) errors.push("Invalid season " + field);
+    textFields(d.meta, ["label","lastExport","nudgeSnoozed"], "Season");
+    if (d.meta.targets !== undefined){
+      if (!isObj(d.meta.targets) || Object.values(d.meta.targets).some(v => !Number.isInteger(v) || v < 1 || v > 10)) errors.push("Invalid category targets.");
+    }
+  }
+  for (const show of d.shows){
+    if (!isObj(show)) continue;
+    if (!identifier(show.id)) errors.push("Every production needs a valid identifier.");
+    textFields(show, ["eligibilityNote","recusalNote","rosterId","rulingSource","rulingDate"], "Production");
+    if (show.status !== undefined && !["","consider","pass"].includes(show.status)) errors.push("Invalid verdict.");
+    for (const field of ["eligible","recused","revisit","bookEligible","scoreEligible"]) if (show[field] !== undefined && typeof show[field] !== "boolean") errors.push("Invalid production " + field);
+    if (!score(show.overall)) errors.push("Invalid production score.");
+    if (isObj(show.crafts)) for (const craft of Object.values(show.crafts)){
+      if (!isObj(craft)){ errors.push("Invalid element record."); continue; }
+      textFields(craft, ["credit","note","status"], "Element");
+      if (craft.status !== undefined && !["","consider","pass"].includes(craft.status)) errors.push("Invalid element verdict.");
+      if (!score(craft.score)) errors.push("Invalid element score.");
+    }
+    const ids = new Set();
+    if (Array.isArray(show.performances)) for (const perf of show.performances){
+      if (!isObj(perf)) continue;
+      if (perf.id !== undefined && (!identifier(perf.id) || ids.has(perf.id))) errors.push("Invalid or repeated performer identifier.");
+      ids.add(perf.id);
+      textFields(perf, ["name","role","billing","division","note","status"], "Performance");
+      if (perf.status !== undefined && !["","consider","pass"].includes(perf.status)) errors.push("Invalid performance verdict.");
+      if (perf.billing !== undefined && !["unset","leading","featured"].includes(perf.billing)) errors.push("Invalid billing.");
+      if (perf.division !== undefined && !["unset","actor","actress"].includes(perf.division)) errors.push("Invalid division.");
+      if (!score(perf.score)) errors.push("Invalid performance score.");
+    }
+  }
+  if (isObj(d.ballot)){
+    if (isObj(d.ballot.picks)) for (const picks of Object.values(d.ballot.picks))
+      if (!isObj(picks) || Object.values(picks).some(v => !["nom","hold","pass"].includes(v))) errors.push("Invalid ballot selection.");
+    if (d.ballot.order !== undefined && (!isObj(d.ballot.order) || Object.values(d.ballot.order).some(v => !Array.isArray(v) || v.some(k => typeof k !== "string") || new Set(v).size !== v.length))) errors.push("Invalid ballot ordering.");
+  }
   return {ok:errors.length === 0, errors:errors.slice(0, 12), total:errors.length, count:d.shows.length};
 }
 function adopt(d){
@@ -799,7 +846,7 @@ function initLocal(){
   if (raw){
     let d = null;
     try { d = JSON.parse(raw); } catch { d = null; }
-    if (!readable(d)){ enterRecovery(raw); return; }
+    if (!validateLedger(d).ok){ enterRecovery(raw); return; }
     adopt(d);
     if (rosterStale() && untouched()) seedSeason();
     migrateVerdicts();
@@ -844,6 +891,21 @@ async function tryRead(run){
 }
 
 async function initDb(){
+  rootDb = rootDb || db;
+  const active = await tryRead(() => rootDb.doc("season/active").get());
+  if (!active.ok){ enterCloudDown(); return; }
+  const prefix = active.value && active.value.exists ? active.value.data().prefix : "";
+  if (prefix && !/^ledgers\/[A-Za-z0-9_-]+\/$/.test(prefix)){ enterCloudDown(); return; }
+  db = prefix ? scopedStore(rootDb, prefix) : rootDb;
+  const epoch = ++storeEpoch;
+  rootDb.doc("season/active").onSnapshot(s => {
+    if (epoch !== storeEpoch || replacing) return;
+    const incoming = s.exists ? s.data().prefix : "";
+    if ((incoming || "") !== (prefix || "")){
+      cloudDown = true;
+      markFailed("This season was replaced in another window. Download a backup of any local changes, then reload to open the current season.");
+    }
+  }, () => {});
   const metaRead = await tryRead(() => db.doc("season/meta").get());
   const ballotRead = await tryRead(() => db.doc("season/ballot").get());
   const showsRead = await tryRead(() => db.collection("shows").get());
@@ -887,6 +949,7 @@ async function initDb(){
   mirrorLocal();
 
   db.collection("shows").onSnapshot(snap => {
+    if (epoch !== storeEpoch || replacing) return;
     const incoming = snap.docs.map(d => normalizeShow(Object.assign({id:d.id}, d.data())));
     const byId = new Map(incoming.map(s => [s.id, s]));
     const merged = [];
@@ -900,12 +963,14 @@ async function initDb(){
     render({keepSheet:true});
   }, () => {});
   db.doc("season/ballot").onSnapshot(s => {
+    if (epoch !== storeEpoch || replacing) return;
     if (s.exists && !dirty.has(dirtyKey("ballot"))){
       ballot = Object.assign({picks:{}, order:{}}, s.data());
       render({keepSheet:true});
     }
   }, () => {});
   db.doc("season/meta").onSnapshot(s => {
+    if (epoch !== storeEpoch || replacing) return;
     if (s.exists && !dirty.has(dirtyKey("meta"))){
       meta = Object.assign(defaultMeta(), {dataVersion:0}, s.data());
       paintStrip();
@@ -1061,27 +1126,36 @@ function queueSave(kind, id){
   if (!db){ writeLocal(); return; }
   const key = dirtyKey(kind, id);
   dirty.add(key);
+  revisions.set(key, (revisions.get(key) || 0) + 1);
   clearTimeout(saveTimers[key]);
   saveTimers[key] = setTimeout(() => flushSave(kind, id), 500);
 }
 function flushSave(kind, id){
-  if (cloudDown) return;
+  if (cloudDown || replacing) return;
   if (!db){ writeLocal(); return; }
-  const key = dirtyKey(kind, id);
+  const key = dirtyKey(kind, id), epoch = storeEpoch;
+  clearTimeout(saveTimers[key]);
   delete saveTimers[key];
-  let write = null;
-  if (kind === "show"){
-    const s = getShow(id);
-    write = s ? db.doc("shows/" + id).set(showBody(s)) : null;
-  } else if (kind === "meta"){
-    write = db.doc("season/meta").set(stripMeta(meta));
-  } else if (kind === "ballot"){
-    write = db.doc("season/ballot").set(ballotBody());
-  }
-  if (!write){ dirty.delete(key); return; }
-  markSaving();
-  mirrorLocal();          // the browser copy lands immediately, whatever the network does
-  write.then(() => { dirty.delete(key); markSaved(); }, noteWriteError);
+  dirty.add(key);
+  const revision = revisions.get(key) || 0;
+  const record = kind === "show" ? getShow(id) : null;
+  const body = kind === "show" ? (record ? showBody(record) : null)
+    : kind === "meta" ? stripMeta(meta) : ballotBody();
+  if (!body){ dirty.delete(key); return; }
+  const destination = db.doc(kind === "show" ? "shows/" + id : "season/" + kind);
+  const payload = JSON.parse(JSON.stringify(body));
+  markSaving(); mirrorLocal();
+  // Serialize writes for a record, and acknowledge only the revision sent.
+  const previous = writes.get(key);
+  const send = () => { try { return Promise.resolve(destination.set(payload)); } catch (e){ return Promise.reject(e); } };
+  const write = previous ? previous.catch(() => {}).then(send) : send();
+  writes.set(key, write);
+  write.then(() => {
+    if (epoch !== storeEpoch) return;
+    if ((revisions.get(key) || 0) === revision && writes.get(key) === write) dirty.delete(key);
+    markSaved();
+  }, e => { if (epoch === storeEpoch) noteWriteError(e); });
+  return write;
 }
 
 /* Nothing may be left sitting in a timer when the tab goes away. */
@@ -1110,37 +1184,65 @@ function noteWriteError(e){
     : "Your latest changes could not be saved. They are still on screen — download a backup before you leave.");
 }
 async function removeShow(id){
-  shows = shows.filter(s => s.id !== id);
-  for (const catId in ballot.picks){
-    for (const key in ballot.picks[catId]) if (key.startsWith(id + ":")) delete ballot.picks[catId][key];
-  }
-  if (db){ await db.doc("shows/" + id).delete().catch(() => {}); flushSave("ballot"); }
-  else writeLocal();
-}
-/* Replaces the whole ledger and reports honestly: {ok, failed, snapshot}.
-   The snapshot key is the way back if only part of it landed. */
-async function replaceAll(data){
-  if (cloudDown) return {ok:false, failed:0, blocked:true, snapshot:""};
-  const snapshot = takeSnapshot("before-replace");   // the only copy of what is about to go
-  const nextShows = (data.shows||[]).map(normalizeShow);
-  const nextMeta = Object.assign(defaultMeta(), data.meta||{});
-  const nextBallot = data.ballot && typeof data.ballot === "object" ? data.ballot : {picks:{}};
-  if (!nextBallot.picks || typeof nextBallot.picks !== "object") nextBallot.picks = {};
-  let failed = 0;
+  if (cloudDown || replacing) return false;
+  const key = dirtyKey("show", id);
+  clearTimeout(saveTimers[key]); delete saveTimers[key];
   if (db){
-    const stale = shows.slice();
-    shows = nextShows; meta = nextMeta; ballot = nextBallot;
-    failed = await inSeries([
-      ...stale.map(s => () => db.doc("shows/" + s.id).delete()),
-      () => db.doc("season/meta").set(stripMeta(meta)),
-      () => db.doc("season/ballot").set(ballotBody()),
-      ...shows.map(s => () => db.doc("shows/" + s.id).set(showBody(s))),
-    ]);
-  } else {
-    shows = nextShows; meta = nextMeta; ballot = nextBallot;
-    if (!writeLocal()) failed = 1;
+    try {
+      await (writes.get(key) || Promise.resolve()).catch(() => {});
+      await db.doc("shows/" + id).delete();
+    } catch (e){ noteWriteError(e); return false; }
   }
-  return {ok:failed === 0, failed, snapshot};
+  shows = shows.filter(s => s.id !== id);
+  dirty.delete(key);
+  harvestPicks(id + ":");
+  if (db){ flushSave("ballot"); mirrorLocal(); }
+  else writeLocal();
+  return true;
+}
+/* Stage a complete generation, verify it, then atomically publish its pointer.
+   Existing generations remain intact for recovery; callbacks from the old
+   generation cannot alter the newly selected ledger. */
+async function replaceAll(data){
+  if (cloudDown || replacing) return {ok:false, failed:0, blocked:true, snapshot:""};
+  if (!validateLedger(data).ok) return {ok:false, failed:1, snapshot:""};
+  const snapshot = takeSnapshot("before-replace");
+  if (!snapshot) return {ok:false, failed:1, snapshot:""};
+  const next = JSON.parse(JSON.stringify(data));
+  next.shows = next.shows.map(s => newShow(s));
+  next.meta = Object.assign(defaultMeta(), {dataVersion:0}, next.meta || {});
+  next.ballot = Object.assign({picks:{}, order:{}}, next.ballot || {});
+  replacing = true;
+  document.body.inert = true;
+  try {
+    if (db){
+      rootDb = rootDb || db;
+      const prefix = "ledgers/" + Date.now() + "-" + uid() + "/";
+      const staged = scopedStore(rootDb, prefix);
+      const records = [["season/meta", stripMeta(next.meta)], ["season/ballot", next.ballot],
+        ...next.shows.map(s => ["shows/" + s.id, showBody(s)])];
+      for (const [path, body] of records){
+        await staged.doc(path).set(body);
+        const check = await staged.doc(path).get();
+        if (!check.exists || JSON.stringify(check.data()) !== JSON.stringify(body)) throw new Error("Restore verification failed");
+      }
+      await rootDb.doc("season/active").set({prefix});
+      db = staged;
+    } else {
+      localStorage.setItem(LS_KEY, JSON.stringify(next));
+    }
+    for (const timer of Object.values(saveTimers)) clearTimeout(timer);
+    saveTimers = {}; dirty.clear(); revisions.clear(); writes.clear(); storeEpoch++;
+    adopt(next);
+    saveState.pending = 0;
+    replacing = false;
+    migrateVerdicts();
+    if (db) await initDb(); else writeLocal();
+    return {ok:true, failed:0, snapshot};
+  } catch (e){
+    noteWriteError(e);
+    return {ok:false, failed:1, snapshot};
+  } finally { replacing = false; document.body.inert = false; }
 }
 
 /* ============================================================
@@ -2384,6 +2486,7 @@ async function download(filename, text){
    Field binding
    ============================================================ */
 function setField(spec, value, type){
+  if (replacing) return;
   if (type === "number") value = value === "" ? 0 : Math.max(0, +value || 0);
   if (type === "bool") value = !!value;
   const p = spec.split(":");
@@ -2490,6 +2593,7 @@ document.addEventListener("click", async e => {
     return;
   }
   const act = el.dataset.act;
+  if (replacing) return;
 
   if (act === "undo"){ takeUndo(); return; }
 
@@ -2572,7 +2676,8 @@ document.addEventListener("click", async e => {
       "The archived season stays readable and can be restored; the ledger then loads the current roster.")) return;
     const result = await archiveSeason(meta.label);
     if (!result.ok){ toast("Could not archive — no room in this browser."); return; }
-    await replaceAll({shows:[], meta:Object.assign(defaultMeta(), {label:"New season", sample:false}), ballot:{picks:{}, order:{}}});
+    const replaced = await replaceAll({shows:[], meta:Object.assign(defaultMeta(), {label:"New season", sample:false}), ballot:{picks:{}, order:{}}});
+    if (!replaced.ok){ toast("Archived, but the new season could not be started. Your current ledger remains active."); return; }
     render();
     toast("Archived. Start the new season by adding productions.");
     return;
@@ -2598,7 +2703,7 @@ document.addEventListener("click", async e => {
     render();
     if (result.ok) toast("Restored " + check.count + " production" + (check.count === 1 ? "" : "s"));
     else toast(result.blocked ? "Not restored — the ledger could not be reached."
-      : result.failed + " record(s) did not save. Try again.");
+      : "Restore could not be completed. The previous ledger was preserved. Try again.");
     return;
   }
   if (act === "leave-snaps"){ recovery = null; render(); return; }
@@ -2637,8 +2742,10 @@ document.addEventListener("click", async e => {
     if (!s) return;
     if (!confirm("Delete " + titleOf(s) + " and every verdict and note on it?")) return;
     const at = shows.indexOf(s);
-    const held = harvestPicks(s.id + ":");
-    await removeShow(el.dataset.id);
+    const held = [];
+    for (const catId in ballot.picks) for (const key in ballot.picks[catId])
+      if (key.startsWith(s.id + ":")) held.push([catId, key, ballot.picks[catId][key]]);
+    if (!await removeShow(el.dataset.id)){ toast("Production was not removed. Your ledger is unchanged."); return; }
     openShowId = null; renderSheet(); render();
     offerUndo("Removed " + titleOf(s), async () => {
       shows.splice(Math.min(at, shows.length), 0, s);
@@ -2752,9 +2859,8 @@ document.addEventListener("change", async e => {
     if (result.blocked) toast("Not restored — the ledger could not be reached.");
     else if (result.ok) toast("Restored " + check.count + " production" + (check.count === 1 ? "" : "s"));
     else {
-      alert(result.failed + " record" + (result.failed === 1 ? "" : "s") + " could not be saved, so the restore is " +
-        "incomplete. What was here before is in the snapshot taken just now — open " +
-        "Restore a snapshot on the Nominations tab to put it back.");
+      alert("Restore could not be completed. The previous ledger was preserved. " +
+        "Check storage and your connection, then try again.");
     }
   } catch (err){
     toast("That file could not be restored.");

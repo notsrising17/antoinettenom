@@ -129,7 +129,25 @@ What stands between you and a lost season:
 - **Deletes can be undone.** Removing a performance offers it back for twelve
   seconds, with its verdict and any nomination intact.
 
-Run the tests with `npm test` (35 of them, no dependencies).
+Run the tests with `npm test` (54 checks, no dependencies).
+
+Cloud writes for the same record are serialized. Each acknowledgement clears
+only the revision it saved, preserving edits made while an older save was in flight.
+Deletes are blocked when the cloud cannot be read, and failed deletes retain the
+production and its selections.
+
+Restores validate nested settings, credits, identifiers, and ballot order before
+changing state. A recovery snapshot must succeed first. Cloud restores write and
+read back a separate `ledgers/<generation>/` namespace, then activate it with the
+single `season/active` document. Previous generations are retained; failed staging
+does not delete the active season. Windows running this version stop writes when
+another window activates a replacement and ask for a reload.
+
+After the first cloud restore, use this version on all devices: older app versions
+do not understand the active-generation pointer. Retained generations consume
+storage; this release intentionally does not automatically delete recovery data.
+The cloud protocol is covered by simulated database tests; verify it in the
+published Artifact environment before deploying there.
 
 ### Season to season
 
