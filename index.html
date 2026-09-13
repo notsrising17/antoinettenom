@@ -104,8 +104,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   text-transform:uppercase; color:var(--accent);
 }
 /* Everything else that used to be mono caps is small caps on the form face. */
-.field > label, .lhead, .craft-head, .craft-name, .cand-group h4,
-.rgroup > h3, .tally th, .quick-field > label, .legend{
+.field > label, .lhead, .craft-name, .cand-group h4,
+.rgroup > h3, .tally th, .quick-field > label{
   font-family:var(--display); font-weight:400; letter-spacing:.15em;
   text-transform:uppercase; font-size:12px; color:var(--text-3);
 }
@@ -258,16 +258,16 @@ textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
 .fader[data-value="0"] .seg{opacity:.6}
 .fader .seg.on{background:var(--text-2); border-color:var(--text)}
 .fader:hover .seg{border-color:var(--line-2)}
-.score-read{font-family:var(--ui); font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; min-width:20px; color:var(--text)}
-.score-read.none{color:var(--text-3); font-weight:400}
-.rate{display:flex; align-items:center; gap:9px}
+.score-read{font-family:var(--ui); font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; min-width:14px; color:var(--text)}
+.rate{display:flex; align-items:center; gap:8px}
+.rate-label{font-family:var(--mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-3)}
 
 /* ---- verdict: consider / undecided / pass ---- */
-.verdict{display:inline-flex; gap:6px; border:0; background:none; flex:0 0 auto}
+.verdict{display:inline-flex; gap:5px; border:0; background:none; flex:0 0 auto}
 .verdict button{
-  font-family:var(--display); font-size:12.5px; letter-spacing:.11em; text-transform:uppercase;
+  font-family:var(--display); font-size:11.5px; letter-spacing:.08em; text-transform:uppercase;
   font-weight:400; background:none; border:1px solid var(--line-2);
-  padding:7px 13px; cursor:pointer; color:var(--text-2); line-height:1.35; border-radius:0;
+  padding:7px 11px; cursor:pointer; color:var(--text-2); line-height:1.35; border-radius:0;
   transition:border-color .18s var(--ease), background .18s var(--ease);
 }
 .verdict button:hover{border-color:var(--text); color:var(--text)}
@@ -277,10 +277,6 @@ textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
 /* Pass is recorded, never announced: it reads as a completed line, not a badge. */
 .verdict button.pass[aria-pressed="true"]{background:transparent; border-color:var(--line-2); color:var(--text-3); text-decoration:line-through}
 .verdict.compact button{width:36px; height:34px; padding:0; text-align:center; font-size:15px; line-height:1}
-.legend{display:flex; gap:14px; flex-wrap:wrap; font-family:var(--mono); font-size:10px;
-  letter-spacing:.07em; text-transform:uppercase; color:var(--text-3); margin-bottom:10px}
-.legend b{color:var(--brass); font-size:12px}
-.optional{font-style:normal; text-transform:none; letter-spacing:0; color:var(--text-3); font-size:11px}
 
 /* ---- ledger ---- */
 .toolbar{display:flex; gap:14px 18px; align-items:flex-end; flex-wrap:wrap; margin-bottom:26px; padding-top:8px}
@@ -367,22 +363,24 @@ textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
 .block{border:0; border-top:1px solid var(--line-2); background:none; border-radius:0; padding:24px 0 4px; margin-top:28px}
 .block > h3{font-family:var(--display); font-size:22px; font-weight:500; margin-bottom:6px; text-transform:uppercase; letter-spacing:.03em}
 .block > .hint{margin-bottom:14px}
-.craft-row{display:grid; grid-template-columns:1fr 1fr; gap:10px 12px; align-items:center; padding:14px 0; border-top:1px solid var(--line)}
-.craft-row .craft-name{grid-column:1/-1}
-.craft-head{border-top:0; padding-bottom:4px; font-family:var(--mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-3)}
-.craft-head + .craft-row{border-top:1px solid var(--line-2)}
+/* Every judged line reads the same way: who it is on the first tier,
+   the verdict and the note on the second. Elements and performances share it. */
+.craft-row{display:grid; grid-template-columns:minmax(0,1fr); gap:9px 16px; align-items:center; padding:16px 0; border-top:1px solid var(--line)}
 .craft-name{font-family:var(--mono); font-size:11.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--text-2)}
+.craft-name .chip{margin-left:6px}
+.craft-second{display:flex; gap:9px 11px; align-items:center; flex-wrap:wrap}
+.craft-second .c-note{flex:1 1 220px}
+.craft-second .fader .seg, .p-second .fader .seg{width:6px}
 .craft-row.off{opacity:.55}
 .perf-row{display:grid; grid-template-columns:1fr 1fr; gap:10px 12px; align-items:center; padding:16px 0; border-top:1px solid var(--line)}
 .perf-row .p-name{grid-column:1/-1}
 .p-second{grid-column:1/-1; display:flex; gap:12px; align-items:center; flex-wrap:wrap}
 .p-second .p-note{flex:1 1 200px}
 
-.craft-head{display:none}
 @media (min-width:900px){
-  .craft-head{display:grid}
-  .craft-row{grid-template-columns:128px minmax(0,1fr) 116px 92px minmax(0,1.05fr); gap:12px; padding:10px 0}
-  .craft-row .craft-name{grid-column:auto}
+  .craft-row{grid-template-columns:150px minmax(0,1fr); padding:12px 0}
+  .craft-name{grid-row:1/span 2}
+  .craft-row .c-credit, .craft-second{grid-column:2}
   .perf-row{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) 120px 116px 46px; gap:10px 12px; padding:12px 0}
   .perf-row .p-name{grid-column:auto}
 }
@@ -1980,9 +1978,10 @@ function faderHTML(spec, value, aria){
     segs += '<div class="seg' + (i <= value ? " on" : "") + '" style="height:' + (7 + i * 1.15).toFixed(1) + 'px"></div>';
   }
   return '<div class="rate">' +
+    '<span class="rate-label" aria-hidden="true">Score</span>' +
     '<div class="fader" role="slider" tabindex="0" data-fader="' + esc(spec) + '" data-value="' + value +
     '" aria-valuemin="0" aria-valuemax="10" aria-valuenow="' + value + '" aria-label="' + esc(aria) + '">' + segs + '</div>' +
-    '<span class="score-read' + (value ? "" : " none") + '">' + (value ? value : "—") + "</span></div>";
+    '<span class="score-read">' + (value || "") + "</span></div>";
 }
 const VERDICTS = [["consider", "Consider", "\u2713"], ["", "Undecided", "?"], ["pass", "Pass", "\u2715"]];
 function verdictHTML(key, status, aria, compact){
@@ -2003,20 +2002,12 @@ function statusChip(status){
   return status === "consider"
     ? '<span class="chip chip-consider">Under consideration</span>' : "";
 }
-function faderStatic(value){
-  let segs = "";
-  for (let i = 1; i <= 10; i++){
-    segs += '<div class="seg' + (i <= value ? " on" : "") + '" style="height:' + (7 + i * 1.15).toFixed(1) + 'px"></div>';
-  }
-  return '<div class="rate"><div class="fader" aria-hidden="true" style="cursor:default" data-value="' + value + '">' + segs + "</div>" +
-    '<span class="score-read' + (value ? "" : " none") + '">' + (value ? value : "—") + "</span></div>";
-}
 function paintFader(node, value){
   node.dataset.value = value;
   node.setAttribute("aria-valuenow", value);
   [...node.children].forEach((seg, i) => seg.classList.toggle("on", i + 1 <= value));
   const read = node.parentElement.querySelector(".score-read");
-  if (read){ read.textContent = value ? value : "—"; read.classList.toggle("none", !value); }
+  if (read) read.textContent = value || "";
 }
 let toastTimer, undoEntry = null;
 function toast(msg){
@@ -2561,18 +2552,18 @@ function renderSheet(){
   const form = formOf(s);
   const f = (k) => "show:" + s.id + ":" + k;
 
-  const craftHead = '<div class="craft-row craft-head"><div></div><div>Credited to</div>' +
-    '<div>Verdict</div><div>Score <span class="optional">optional</span></div><div>Note</div></div>';
-  const crafts = craftHead + CRAFTS.filter(c => c.form === "any" || c.form === form).map(c => {
+  const crafts = CRAFTS.filter(c => c.form === "any" || c.form === form).map(c => {
     const v = s.crafts[c.key];
     const gated = c.gate && s[c.gate] === false;
     const who = c.label + (v.credit.trim() ? " — " + v.credit.trim() : "") + " in " + titleOf(s);
     return '<div class="craft-row' + (gated ? " off" : "") + '">' +
-      '<div class="craft-name">' + c.label + (gated ? ' <span class="chip chip-quiet" style="margin-left:4px">ineligible</span>' : "") + "</div>" +
-      '<input class="inp" placeholder="Credited to" value="' + esc(v.credit) + '" data-field="' + f("craft:" + c.key + ":credit") + '" aria-label="' + c.label + ' credit">' +
-      verdictHTML(s.id + ":craft:" + c.key, v.status, who, true) +
-      faderHTML(f("craft:" + c.key + ":score"), v.score, c.label + " score") +
-      '<input class="inp" placeholder="What made it" value="' + esc(v.note) + '" data-field="' + f("craft:" + c.key + ":note") + '" aria-label="' + c.label + ' note">' +
+      '<div class="craft-name">' + c.label + (gated ? ' <span class="chip chip-quiet">ineligible</span>' : "") + "</div>" +
+      '<input class="inp c-credit" placeholder="Credited to" value="' + esc(v.credit) + '" data-field="' + f("craft:" + c.key + ":credit") + '" aria-label="' + c.label + ' credited to">' +
+      '<div class="craft-second">' +
+        verdictHTML(s.id + ":craft:" + c.key, v.status, who, false) +
+        faderHTML(f("craft:" + c.key + ":score"), v.score, c.label + " score") +
+        '<input class="inp c-note" placeholder="What made it" value="' + esc(v.note) + '" data-field="' + f("craft:" + c.key + ":note") + '" aria-label="' + c.label + ' note">' +
+      "</div>" +
     "</div>";
   }).join("");
 
@@ -2639,7 +2630,6 @@ function renderSheet(){
     "</div>" +
 
     '<div class="block"><h3>The night itself</h3>' +
-      '<p class="hint">Write these in the cab home. In April this is all you will have.</p>' +
       '<div class="field" style="margin-bottom:14px"><label>The production itself</label>' +
         '<div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap">' +
           verdictHTML(s.id + ":show", s.status, titleOf(s) + " for its production category", false) +
@@ -2653,9 +2643,7 @@ function renderSheet(){
     "</div>" +
 
     '<div class="block"><h3>Elements</h3>' +
-      '<div class="legend"><span><b>\u2713</b> consider</span><span><b>?</b> undecided</span><span><b>\u2715</b> pass</span>' +
-        '<span class="optional">Everything starts undecided. Consider adds it to that category\u2019s list; pass simply records that you thought about it.</span></div>' +
-      '<p class="hint">Name the credit as billed — the credit is what appears on the ballot, not the department.' +
+      '<p class="hint">Name the credit as billed — the credit is what appears on the ballot, not the department. Everything starts undecided: consider adds the credit to that category\u2019s list, pass simply records that you thought about it.' +
       (musical ? " Orchestrations are open to revivals; book and original score are not, unless newly written for this production." : "") + "</p>" +
       crafts +
       (musical ? '<div class="grid2" style="margin-top:16px; padding-top:14px; border-top:1px solid var(--line)">' +
