@@ -413,7 +413,7 @@ let filter = "all", sortBy = "opened";   // a season not yet under way reads as 
 let storageNote = "";
 
 function defaultMeta(){
-  return {label:"2025–26 Broadway season", eligibleTotal:38, targets:{}, sample:false};
+  return {label:"2026–27 Broadway season", eligibleTotal:38, targets:{}, sample:false, rosterVersion:0};
 }
 function uid(){ return Math.random().toString(36).slice(2,10); }
 function blankCrafts(){
@@ -479,6 +479,7 @@ function initLocal(){
       shows = (d.shows||[]).map(normalizeShow);
       meta = Object.assign(defaultMeta(), d.meta||{});
       ballot = d.ballot || {picks:{}};
+      if (rosterStale() && untouched()){ seedSeason(); writeLocal(); }
     } catch { seedSeason(); }
   } else {
     seedSeason();
@@ -498,8 +499,11 @@ async function initDb(){
   const showSnap = await db.collection("shows").get().catch(() => null);
   shows = showSnap ? showSnap.docs.map(d => normalizeShow(Object.assign({id:d.id}, d.data()))) : [];
 
-  if (!hasMeta && shows.length === 0){
+  const fresh = !hasMeta && shows.length === 0;
+  if (fresh || (rosterStale() && untouched())){
+    const previous = shows.slice();
     seedSeason();
+    await inSeries(previous.map(s => () => db.doc("shows/" + s.id).delete()));
     await inSeries([
       () => db.doc("season/meta").set(stripMeta(meta)),
       () => db.doc("season/ballot").set({picks:ballot.picks}),
@@ -531,7 +535,23 @@ async function inSeries(tasks){
   if (failed.length) noteWriteError(failed[0]);
   return failed.length;
 }
-const stripMeta = m => ({label:m.label, eligibleTotal:+m.eligibleTotal||0, targets:m.targets||{}, sample:!!m.sample});
+const stripMeta = m => ({
+  label:m.label, eligibleTotal:+m.eligibleTotal||0, targets:m.targets||{},
+  sample:!!m.sample, rosterVersion:+m.rosterVersion||0,
+});
+
+/* A ledger nobody has worked in yet: still the roster as delivered, nothing
+   seen, nothing scored, nothing picked. Only such a ledger may be replaced
+   when the roster is recompiled -- any real work makes it off limits. */
+function untouched(){
+  if (!meta.sample) return false;
+  if (Object.values(ballot.picks || {}).some(cat => Object.keys(cat || {}).length)) return false;
+  return !shows.some(s =>
+    s.seen || s.overall || s.verdict || s.memory || s.revisit || s.recused ||
+    s.performances.some(p => p.score || p.note) ||
+    CRAFTS.some(c => s.crafts[c.key].score || s.crafts[c.key].note));
+}
+const rosterStale = () => (+meta.rosterVersion || 0) !== ROSTER_VERSION;
 
 function queueSave(kind, id){
   const key = kind + ":" + (id||"");
@@ -711,6 +731,7 @@ function coverage(){
    it is the performer's own call.
    ============================================================ */
 const ROSTER_SOURCED = "13 September 2026";
+const ROSTER_VERSION = 2;   // bump when the roster below is recompiled
 
 function seedSeason(){
   const S = (title, type, theatre, opened, author, crafts, perfs, extra) => newShow(Object.assign({
@@ -892,6 +913,7 @@ function seedSeason(){
     label:"2026–27 Broadway season",
     eligibleTotal:shows.length,
     sample:true,
+    rosterVersion:ROSTER_VERSION,
   });
   ballot = {picks:{}};
 }
