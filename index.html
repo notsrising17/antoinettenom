@@ -498,11 +498,11 @@ async function initDb(){
 
   if (!hasMeta && shows.length === 0){
     seedSample();
-    await Promise.all([
-      db.doc("season/meta").set(stripMeta(meta)),
-      db.doc("season/ballot").set({picks:ballot.picks}),
-      ...shows.map(s => db.doc("shows/" + s.id).set(showBody(s))),
-    ]).catch(() => {});
+    await inSeries([
+      () => db.doc("season/meta").set(stripMeta(meta)),
+      () => db.doc("season/ballot").set({picks:ballot.picks}),
+      ...shows.map(s => () => db.doc("shows/" + s.id).set(showBody(s))),
+    ]);
   }
 
   db.collection("shows").onSnapshot(snap => {
@@ -518,6 +518,17 @@ async function initDb(){
 }
 
 const showBody = s => { const {id, ...rest} = s; return rest; };
+
+/* Seeding and restoring touch a dozen documents at once. Firing them in
+   parallel is what trips the store's concurrent-write budget, so walk them. */
+async function inSeries(tasks){
+  const failed = [];
+  for (const t of tasks){
+    try { await t(); } catch (e){ failed.push(e); }
+  }
+  if (failed.length) noteWriteError(failed[0]);
+  return failed.length;
+}
 const stripMeta = m => ({label:m.label, eligibleTotal:+m.eligibleTotal||0, targets:m.targets||{}, sample:!!m.sample});
 
 function queueSave(kind, id){
@@ -555,13 +566,14 @@ async function replaceAll(data){
   const nextMeta = Object.assign(defaultMeta(), data.meta||{});
   const nextBallot = data.ballot || {picks:{}};
   if (db){
-    await Promise.all(shows.map(s => db.doc("shows/" + s.id).delete().catch(() => {})));
+    const stale = shows.slice();
     shows = nextShows; meta = nextMeta; ballot = nextBallot;
-    await Promise.all([
-      db.doc("season/meta").set(stripMeta(meta)),
-      db.doc("season/ballot").set({picks:ballot.picks}),
-      ...shows.map(s => db.doc("shows/" + s.id).set(showBody(s))),
-    ]).catch(noteWriteError);
+    await inSeries([
+      ...stale.map(s => () => db.doc("shows/" + s.id).delete()),
+      () => db.doc("season/meta").set(stripMeta(meta)),
+      () => db.doc("season/ballot").set({picks:ballot.picks}),
+      ...shows.map(s => () => db.doc("shows/" + s.id).set(showBody(s))),
+    ]);
   } else {
     shows = nextShows; meta = nextMeta; ballot = nextBallot;
     writeLocal();
