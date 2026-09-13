@@ -30,7 +30,8 @@ test('a booking whose date has passed without being logged is overdue, not forgo
 test('a booking today reads as tonight, tomorrow as tomorrow', () => {
   const a = app();
   a.run(`shows = [newShow({id:"t", booked:"${today()}", bookedTime:"19:30"})]`);
-  assert.match(a.run('whenBooked(shows[0])'), /^Tonight, 19:30$/);
+  assert.match(a.run('whenBooked(shows[0])'), /^Tonight, 7:30\s?PM$/i,
+    'a 24-hour input value reads back as a 12-hour clock time, not raw "19:30"');
   a.run(`shows = [newShow({id:"t", booked:"${shift(1)}"})]`);
   assert.equal(a.run('whenBooked(shows[0])'), 'Tomorrow');
 });

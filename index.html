@@ -1428,6 +1428,17 @@ function fmtDate(iso){
   if (isNaN(d)) return iso;
   return d.toLocaleDateString(undefined, {month:"short", day:"numeric"});
 }
+// <input type="time"> always stores 24-hour "HH:MM" regardless of locale —
+// only the widget itself localizes for display. Anywhere that value is
+// dropped into plain text needs this, or a 7pm curtain reads as "19:00".
+function fmtTime(hhmm){
+  if (!hhmm) return "";
+  const m = hhmm.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return hhmm;
+  const d = new Date(2000, 0, 1, +m[1], +m[2]);
+  if (isNaN(d)) return hhmm;
+  return d.toLocaleTimeString(undefined, {hour:"numeric", minute:"2-digit"});
+}
 function seenAgo(iso){
   const d = daysSince(iso);
   if (d === null) return "";
@@ -1480,7 +1491,7 @@ function bookedShort(s){                     // diary column and list chip
     : d.toLocaleDateString(undefined, {weekday:"short", month:"short", day:"numeric"});
 }
 function whenBooked(s){                      // full, for a sentence
-  return !s.booked ? "" : bookedDay(s) + (s.bookedTime ? ", " + s.bookedTime : "");
+  return !s.booked ? "" : bookedDay(s) + (s.bookedTime ? ", " + fmtTime(s.bookedTime) : "");
 }
 // One date, one consistent look, on every ledger row: what it's showing
 // depends on state, but never more than one date at a time.
@@ -2290,7 +2301,8 @@ function renderCompare(cat){
       const pick = pickOf(cat.id, c.key);
       return '<div class="card' + (pick === "nom" ? " is-nom" : "") + '">' +
         '<div class="who">' + esc(c.who) + "</div>" +
-        '<div class="where">' + (c.where ? italic(c.where) : "") + (c.role ? " &middot; " + esc(c.role) : "") + "</div>" +
+        '<div class="where">' + (c.where ? (cat.kind === "production" ? esc(c.where) : italic(c.where)) : "") +
+          (c.role ? " &middot; " + esc(c.role) : "") + "</div>" +
         '<div class="where mono" style="font-size:11.5px; color:var(--text-3)">' +
           (c.seen ? "seen " + fmtDate(c.seen) + ", " + seenAgo(c.seen) : "") +
           (c.score ? " &middot; scored " + c.score : "") + "</div>" +
@@ -2414,8 +2426,7 @@ function renderSchedule(){
       '<div class="hero-lead rise">' +
         '<input class="hero-eyebrow" id="seasonName" data-field="meta:label" aria-label="Season name" spellcheck="false">' +
         (booked.length
-          ? '<p class="hero-kicker">Next &middot; ' + esc(bookedDay(booked[0])) +
-              (booked[0].bookedTime ? ", " + esc(booked[0].bookedTime) : "") + "</p>" +
+          ? '<p class="hero-kicker">Next &middot; ' + esc(whenBooked(booked[0])) + "</p>" +
             '<h1 class="hero-title"><button class="titlelink" data-act="open-show" data-id="' + booked[0].id + '">' +
               esc(titleOf(booked[0])) + "</button></h1>" +
             (booked[0].theatre ? '<p class="hero-msg">At ' + esc(booked[0].theatre) + "</p>" : "")
@@ -2531,20 +2542,26 @@ function renderSeason(){
   } else {
     // A production's real-world run — open, upcoming, or closed — is a
     // different question from whether you've seen it, so it groups the
-    // list on its own, independent of the "Show me" filter above.
-    html += ledgerGroupHTML("Currently running", list.filter(s => runStatus(s) === "running"), awardsFor,
-      "Nothing currently running matches.");
-    html += ledgerGroupHTML("Coming soon", list.filter(s => runStatus(s) === "soon"), awardsFor,
-      "Nothing announced yet matches.");
-    html += ledgerGroupHTML("Closed", list.filter(s => runStatus(s) === "closed"), awardsFor,
-      "Nothing has closed yet.");
+    // list on its own, independent of the "Show me" filter above. A group
+    // with nothing in it anywhere in the ledger (not just after a filter)
+    // is skipped rather than shown as an empty shell — early in a season,
+    // that's most of them.
+    const groups = [
+      ["Currently running", "running", "Nothing currently running matches."],
+      ["Coming soon", "soon", "Nothing announced yet matches."],
+      ["Closed", "closed", "Nothing has closed yet."],
+    ];
+    for (const [label, status, emptyText] of groups){
+      if (!shows.some(s => runStatus(s) === status)) continue;
+      html += ledgerGroupHTML(label, list.filter(s => runStatus(s) === status), awardsFor, emptyText);
+    }
   }
 
   // Housekeeping belongs after the season, not in front of it.
   html += '<div class="pagefoot">' +
     '<button class="btn" data-act="intake-open">Paste a press release<span class="arrow" aria-hidden="true">&rarr;</span></button>' +
     '<button class="btn" data-act="new-show">Add a production by hand</button>' +
-    '<label class="footfield">Productions this season' +
+    '<label class="footfield" title="How many productions you expect to track this season. Raising it is what tells you how many you have not logged yet.">Productions this season' +
       '<input class="inp" type="number" min="0" max="200" value="' + (+meta.eligibleTotal || 0) +
       '" data-field="meta:eligibleTotal" data-type="number" data-rerender="1"></label>' +
   "</div>";
@@ -2605,6 +2622,7 @@ function renderSheet(){
   wrap.innerHTML = '<div class="sheet" role="dialog" aria-modal="true" aria-label="Assessment: ' + esc(titleOf(s)) + '">' +
     '<div class="sheet-bar">' +
       '<span class="eyebrow">Assessment sheet</span>' +
+      (runStatus(s) === "closed" ? '<span class="chip chip-quiet">Closed ' + esc(fmtDate(s.closed)) + "</span>" : "") +
       '<button class="btn btn-sm" data-act="close-sheet">Done</button>' +
     "</div>" +
     '<div class="sheet-body">' +
@@ -2747,7 +2765,7 @@ function renderBallot(){
                 (c.score || "\u00b7") + "</div>" +
               "<div><div class=\"cand-who\">" + esc(c.who) +
                 (c.disputed ? ' <span class="chip chip-quiet">billing disputed</span>' : "") + "</div>" +
-                '<div class="cand-where">' + (c.where ? italic(c.where) : "") +
+                '<div class="cand-where">' + (c.where ? (cat.kind === "production" ? esc(c.where) : italic(c.where)) : "") +
                   (c.role ? " &middot; " + esc(c.role) : "") +
                   (c.seen ? ' <span class="mono" style="font-size:11.5px; color:var(--text-3)">seen ' + fmtDate(c.seen) + ", " + seenAgo(c.seen) + "</span>" : "") + "</div>" +
                 (c.note ? '<div class="cand-note">' + esc(c.note) + "</div>" : "") +
@@ -2831,7 +2849,7 @@ function renderReport(){
           (h.considering ? h.considering + " being considered, " : "") + h.cands.length + " eligible</p>";
       } else {
         html += "<ol>" + noms.map(n => "<li>" + esc(n.who) +
-          (n.where ? " — " + italic(n.where) : "") +
+          (n.where ? " — " + (cat.kind === "production" ? esc(n.where) : italic(n.where)) : "") +
           (n.role ? " <span style=\"color:var(--text-3)\">as " + esc(n.role) + "</span>" : "") +
           (n.note ? '<div class="cand-note" style="margin:3px 0 6px">' + esc(n.note) + "</div>" : "") + "</li>").join("") + "</ol>";
         const alts = alternatesFor(cat);
