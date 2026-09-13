@@ -9,6 +9,32 @@ It exists because of the gap the job actually has. A nominator sees a show in
 September and votes on it the following April, across 26 categories, from
 memory. `index.html` is the notebook that closes that gap.
 
+## The design
+
+Prestigious, expressive and welcoming, with typography and space doing the work.
+
+**Palette.** White, soft black `#221F20`, muted blue `#4C8FB5`, ice blue `#F1F7FC`,
+pale blue `#E1EDF4`, with bronze held back for special moments. Muted blue
+measures **3.56:1 on white and 2.98:1 on pale blue**, so it carries rules, fills
+and display type but never body text; `--accent` is the same hue darkened to
+`#2E6482` (**6.44:1**) for anything that has to be read. Every rendered string is
+checked against WCAG AA in the browser, sized and weighted, not by eye.
+
+**Type.** Oswald for headlines, navigation, labels and buttons — condensed,
+uppercase, generously letterspaced, and used *selectively*. Source Sans 3 for
+everything read at length, at 17px with a 1.6 line height.
+
+**Layout.** Crisp rectangles, zero radius, hairline rules instead of boxes, and a
+lot of air. The Season page opens on an asymmetric hero: one dominant message
+sized to the state of the season, one primary action, and *Opening next* beside
+it as supporting content. An oversized outlined season year sits behind it as the
+only ornament.
+
+**Motion.** One short rise as a view settles, arrows that travel 4px on hover, and
+nothing else — all of it removed under `prefers-reduced-motion`.
+
+**Dark.** The same palette inverted, for taking notes in a dark house.
+
 ## Using it
 
 Open `index.html` in a browser. There is no build step, no server, and no
