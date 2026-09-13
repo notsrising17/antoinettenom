@@ -12,9 +12,12 @@ memory. `index.html` is the notebook that closes that gap.
 ## Using it
 
 Open `index.html` in a browser. There is no build step, no server, and no
-dependency beyond the web fonts. It arrives carrying a sample season — nine
-invented productions with invented artists, plus three public-domain revivals —
-so the ballot is populated on first open. Clear it when you want to start your own.
+dependency beyond the web fonts.
+
+It arrives carrying the announced **2026–27 Broadway season** — 22 productions
+with their classifications, theatres, opening nights, creative credits and
+announced casting already filled in, so the night you see a show you only have
+to score what you saw. One button empties it if you would rather start clean.
 
 ### Season
 
@@ -91,8 +94,36 @@ This strips the document wrapper (the Artifact publisher supplies its own) and
 leaves everything else untouched. Publish the result with the `db` and
 `downloads` capabilities declared.
 
-## A note on the sample season
+## The prepopulated roster
 
-Every production, artist, and theatre in the sample is invented, apart from
-three public-domain plays used as revivals. Nothing in it is a claim about a
-real show or a real performer.
+The roster was compiled from public announcements as of **13 September 2026**
+and covers the 22 Tony-eligible Broadway productions announced for the 2026–27
+season, from *Paranormal Activity* (15 September 2026) through *The Full Monty*
+(25 April 2027).
+
+What is filled in is a matter of record: title, classification, theatre, opening
+night, author, director, designers and announced principal casting. What is not
+filled in is anything that would be an opinion — every score is zero, every note
+is empty, and no production is marked as seen.
+
+Three things to know about it:
+
+- **Dates move and casting is added.** Several spring productions had no theatre
+  or no dates announced when this was compiled; they carry the note "date TBA"
+  and sort to the end of the schedule. More productions will be announced through
+  the winter — raise the eligible count as they are.
+- **Billing and category are left unplaced by default.** A performance only
+  enters a category once you place it as leading or featured and as actor or
+  actress. Where an announcement did not settle it, or where the placement is
+  the performer's own call, the roster leaves it unplaced rather than guessing,
+  and the coverage strip counts how many are still waiting. Mason Alexander Park
+  in *Much Ado About Nothing* is left unplaced deliberately for that reason.
+- **The genuinely contested rulings are flagged, not decided.** *The Fantasticks*
+  never played Broadway, so it is not a revival — but its 1960 book and score are
+  not original to this production, and both are switched off pending a ruling.
+  *Dolly* mixes catalogue songs with new writing, so its score is switched off the
+  same way. *860* is a solo show, which the Administration Committee has
+  repeatedly moved out of Best Play. Each carries an eligibility note saying so.
+
+Verify anything you are about to rely on. The ledger is a working notebook, not
+a source of record.

@@ -227,7 +227,7 @@ textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
 .craft-row:first-of-type{border-top:0}
 .craft-name{font-family:var(--mono); font-size:11.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--text-2)}
 .craft-row.off{opacity:.55}
-.perf-row{display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) 104px 96px 150px minmax(0,1.2fr) 34px; gap:10px; align-items:center; padding:9px 0; border-top:1px solid var(--line)}
+.perf-row{display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) 116px 112px 150px minmax(0,1.2fr) 34px; gap:10px; align-items:center; padding:9px 0; border-top:1px solid var(--line)}
 .perf-row:first-of-type{border-top:0}
 @media (max-width:820px){
   .craft-row{grid-template-columns:1fr 1fr; gap:8px 12px}
@@ -409,7 +409,7 @@ let tab = "season";
 let pendingFocus = false;
 let openShowId = null;
 let openCats = new Set();
-let filter = "all", sortBy = "seen";
+let filter = "all", sortBy = "opened";   // a season not yet under way reads as a schedule
 let storageNote = "";
 
 function defaultMeta(){
@@ -424,6 +424,7 @@ function blankCrafts(){
 function newShow(patch){
   const s = {
     id:uid(), title:"", type:"new-play", theatre:"", opened:"", seen:"",
+    author:"", eligibilityNote:"",
     eligible:true, recused:false, recusalNote:"", revisit:false,
     overall:0, verdict:"", memory:"",
     bookEligible:true, scoreEligible:true,
@@ -437,9 +438,10 @@ function normalizeShow(s){
     const v = s.crafts[c.key] || {};
     s.crafts[c.key] = {credit:v.credit||"", score:+v.score||0, note:v.note||""};
   }
+  s.author = s.author || ""; s.eligibilityNote = s.eligibilityNote || "";
   s.performances = (s.performances||[]).map(p => ({
     id:p.id||uid(), name:p.name||"", role:p.role||"",
-    billing:p.billing||"leading", division:p.division||"actor",
+    billing:p.billing||"unset", division:p.division||"unset",
     score:+p.score||0, note:p.note||"", disputed:!!p.disputed,
   }));
   s.overall = +s.overall||0;
@@ -477,9 +479,9 @@ function initLocal(){
       shows = (d.shows||[]).map(normalizeShow);
       meta = Object.assign(defaultMeta(), d.meta||{});
       ballot = d.ballot || {picks:{}};
-    } catch { seedSample(); }
+    } catch { seedSeason(); }
   } else {
-    seedSample();
+    seedSeason();
     writeLocal();
   }
 }
@@ -497,7 +499,7 @@ async function initDb(){
   shows = showSnap ? showSnap.docs.map(d => normalizeShow(Object.assign({id:d.id}, d.data()))) : [];
 
   if (!hasMeta && shows.length === 0){
-    seedSample();
+    seedSeason();
     await inSeries([
       () => db.doc("season/meta").set(stripMeta(meta)),
       () => db.doc("season/ballot").set({picks:ballot.picks}),
@@ -590,7 +592,7 @@ function candidatesFor(cat){
       .filter(s => TYPES[s.type] && TYPES[s.type].production === cat.production)
       .map(s => ({
         key:s.id + ":show", showId:s.id, score:s.overall,
-        who:s.title || "Untitled production", where:"",
+        who:s.title || "Untitled production", where:s.author,
         note:s.verdict || s.memory, seen:s.seen,
       }));
   }
@@ -611,7 +613,7 @@ function candidatesFor(cat){
   for (const s of live){
     if (formOf(s) !== cat.form) continue;
     for (const p of s.performances){
-      if (p.billing !== cat.billing || p.division !== cat.division) continue;
+      if (p.billing !== cat.billing || p.division !== cat.division) continue;   // "unset" matches nothing
       if (!p.name.trim()) continue;
       out.push({
         key:s.id + ":perf:" + p.id, showId:s.id, score:p.score,
@@ -687,156 +689,211 @@ function coverage(){
     logged, seen:seen.length, notSeen:live.length - seen.length, unlogged,
     unassessed:seen.filter(s => !assessed(s)).length,
     recused:shows.filter(s => s.recused).length,
+    toPlace:shows.reduce((n, s) => n + s.performances.filter(p =>
+      p.name.trim() && (p.billing === "unset" || p.division === "unset")).length, 0),
     revisit:shows.filter(s => s.revisit || stale(s)).length,
     catsSet, thin,
   };
 }
 
 /* ============================================================
-   Sample season. Fictional productions and fictional artists,
-   plus three public-domain revivals, so nothing here is a claim
-   about a real show or a real performer.
+   The announced 2026-27 Broadway season.
+
+   Compiled from public announcements. Every field here is a matter of
+   record -- title, classification, theatre, opening night, credits, cast.
+   Nothing here is an assessment: every score is zero and every note the
+   nominator writes is empty, because those are theirs to make.
+
+   Billing (leading or featured) and category (actor or actress) are left
+   unplaced wherever the announcement did not settle them. An unplaced
+   performance appears in no category until the nominator places it, which
+   is the honest default -- placing a performer is a judgment, and for some
+   it is the performer's own call.
    ============================================================ */
-function seedSample(){
-  const S = (t, type, theatre, opened, seen, overall, verdict, memory, crafts, perfs, extra) => newShow(Object.assign({
-    title:t, type, theatre, opened, seen, overall, verdict, memory,
+const ROSTER_SOURCED = "13 September 2026";
+
+function seedSeason(){
+  const S = (title, type, theatre, opened, author, crafts, perfs, extra) => newShow(Object.assign({
+    title, type, theatre, opened, author,
     crafts:Object.assign(blankCrafts(), crafts),
-    performances:(perfs||[]).map(p => ({id:uid(), name:p[0], role:p[1], billing:p[2], division:p[3], score:p[4], note:p[5]||""})),
+    performances:(perfs||[]).map(p => ({
+      id:uid(), name:p[0], role:p[1]||"", billing:p[2]||"unset", division:p[3]||"unset",
+      score:0, note:"", disputed:!!p[4],
+    })),
   }, extra||{}));
-  const c = (credit, score, note) => ({credit, score, note:note||""});
+  const c = credit => ({credit, score:0, note:""});
 
   shows = [
-    S("The Ha'penny Bridge","new-play","Kenmore Theatre","2025-10-17","2025-10-22",9,
-      "A small domestic argument that turns into a century of Irish emigration without ever raising its voice.",
-      "The father folding the letter four times before he reads it. Whole house stopped breathing.",
-      {direction:c("Nuala Brennan",9,"Holds silence longer than anyone this season and never loses the room."),
-       scenic:c("Ivo Rasmussen",8,"One kitchen, rebuilt twice in front of us."),
-       costume:c("Margaret Oyelaran",7),
-       lighting:c("Pell Dunwoody",9,"Morning through one window, forty years of it."),
-       sound:c("Tobias Lark",7,"Gull cries placed so precisely you smell the quay.")},
-      [["Declan Moore","Vincent Hegarty","leading","actor",9,"The spine of the evening. Does not ask to be liked once."],
-       ["Siobhan Carr","Eileen Hegarty","leading","actress",8,"Quietest hands on stage. Devastating in the last ten minutes."],
-       ["Oscar Pine","Young Vincent","featured","actor",7]]),
+    S("Paranormal Activity", "new-play", "August Wilson Theatre", "2026-09-15", "Levi Holloway",
+      {direction:c("Felix Barrett")}, [],
+      {eligibilityNote:"Transfer of the Olivier-nominated London production. Casting was still to be announced when this roster was compiled."}),
 
-    S("Glass Harbor","new-musical","Avalon Theatre","2025-11-14","2025-11-20",8,
-      "Ambitious, over-plotted, and carried the whole way by a score that knows exactly what it wants.",
-      "The act one button — eleven voices, no orchestra, dead stop.",
-      {direction:c("Rami Okonjo",7,"Clean traffic, shy about the big emotional turns."),
-       book:c("Perrin Vaughn",6,"Two subplots too many; the shipyard strike never pays off."),
-       score:c("Lou Ferraro & Agnes Dietrich",9,"Best new writing I have heard this year. Two melodies I still cannot shake."),
-       orchestrations:c("Henrietta Mbeki",9,"Twelve players sounding like thirty, and the brass knows when to sit down."),
-       choreography:c("Denny Ruiz",6),
-       scenic:c("Ivo Rasmussen",8,"Hull that becomes a ballroom floor. Earns its applause."),
-       costume:c("Yuki Tanabe",8),
-       lighting:c("Pell Dunwoody",7),
-       sound:c("Beatrix Cole",8,"Every lyric landed from the rear mezzanine.")},
-      [["Marguerite Sully","Ada Thorne","leading","actress",9,"Sings the eleven o'clock number sitting down and stops the show anyway."],
-       ["Calvin Ross","Peter Lyle","leading","actor",7],
-       ["Dot Ferreira","Mrs. Kettering","featured","actress",8,"Four scenes, owns all four."],
-       ["Joaquin Vela","Sam","featured","actor",6]]),
+    S("School Girls; Or, The African Mean Girls Play", "new-play", "Samuel J. Friedman Theatre", "2026-09-28", "Jocelyn Bioh",
+      {direction:c("Whitney White")},
+      [["Patina Miller", "", "unset", "actress"],
+       ["Jasmine Amy Rogers", "", "unset", "actress"],
+       ["Denée Benton", "", "unset", "actress"]],
+      {eligibilityNote:"Manhattan Theatre Club. First Broadway production of a 2017 Off-Broadway play, so it goes to Best Play, not Best Revival."}),
 
-    S("Hedda Gabler","revival-play","Thayer Theatre","2025-12-01","2025-12-03",7,
-      "A cold, clear reading that trusts the text and undercuts its own lead in the fourth act.",
-      "The pistol case left open on the table for the whole second half.",
-      {direction:c("Francesca Dolan",7,"Real point of view. The final image does not work."),
-       scenic:c("Per Halvorsen",8,"Glass box of a drawing room, snow visible on every side."),
-       costume:c("Margaret Oyelaran",8,"Silhouette does half the character work."),
-       lighting:c("Ines Amadi",7),
-       sound:c("Tobias Lark",6)},
-      [["Vera Lindqvist","Hedda","leading","actress",9,"Funniest and most frightening Hedda I expect to see. Nomination regardless of the production."],
-       ["Andrew Mbatha","Judge Brack","featured","actor",8,"Makes the blackmail sound like small talk."],
-       ["Julia Penhale","Thea Elvsted","featured","actress",6]]),
+    S("Other Desert Cities", "revival-play", "Hudson Theatre", "2026-10-18", "Jon Robin Baitz",
+      {direction:c("John Benjamin Hickey")},
+      [["Julia Louis-Dreyfus", "", "unset", "actress"],
+       ["Ed Harris", "", "unset", "actor"],
+       ["Allison Janney", "", "unset", "actress"],
+       ["Lily Rabe", "", "unset", "actress"],
+       ["Joe Keery", "", "unset", "actor"]],
+      {eligibilityNote:"Five above-the-title names in a five-hander. Leading and featured will be argued over — check the billing when the Playbill lands."}),
 
-    S("The Cherry Orchard","revival-play","Kenmore Theatre","2026-01-11","2026-01-15",6,
-      "Handsome, slow, and strangely unfeeling until the axes start.",
-      "Sound of the orchard coming down. That is the whole review.",
-      {direction:c("Gerald Voss",5,"Shape of the thing is lost by act three."),
-       scenic:c("Per Halvorsen",7),
-       costume:c("Yuki Tanabe",6),
-       lighting:c("Ines Amadi",6),
-       sound:c("Beatrix Cole",9,"The final offstage sound design is the best thing in the building.")},
-      [["Rosalind Achebe","Lyubov","leading","actress",7],
-       ["Emmett Shaw","Lopakhin","featured","actor",8,"Only person on stage who seems to want something."]]),
+    S("860", "new-play", "Imperial Theatre", "2026-10-21", "Billy Crystal",
+      {direction:c("Scott Ellis")},
+      [["Billy Crystal", "", "leading", "actor"]],
+      {eligibilityNote:"Solo show. The Administration Committee has repeatedly moved solo work out of Best Play and into a Special Award — confirm the ruling before treating it as a Best Play contender."}),
 
-    S("Ironwork","new-musical","Bellerby Theatre","2026-02-01","2026-02-04",9,
-      "The season's event. A foundry, a strike, and a score built out of the noise of the work itself.",
-      "Forty minutes of act two played on percussion made of the set. Never heard a house that quiet.",
-      {direction:c("Thandiwe Cole",9,"Every choice serves the same argument. Front of my list."),
-       book:c("Ezra Halloway",8,"Lean. Knows which three characters the show is about."),
-       score:c("Thandiwe Cole & Ezra Halloway",9,"Original, difficult, and hummable by the curtain."),
-       orchestrations:c("Henrietta Mbeki",8,"Anvils and a string quartet. It works."),
-       choreography:c("Maya Oduya",9,"Labour as dance without a single cute gesture."),
-       scenic:c("Gunnar Eide",9,"The set is the instrument. Best design of the year."),
-       costume:c("Priya Raghunathan",7),
-       lighting:c("Pell Dunwoody",9,"Furnace light. I could feel it in row H."),
-       sound:c("Beatrix Cole",9,"Hardest sound problem of the season, solved.")},
-      [["Imani Frost","Della Voigt","leading","actress",9,"Career-defining. Sings the strike speech flat on her back."],
-       ["Tomas Leira","Anton","leading","actor",8],
-       ["Harriet Gleeson","Ma Voigt","featured","actress",9,"One song. Stops the evening."],
-       ["Felix Adeyemi","The Foreman","featured","actor",8]]),
+    S("The Imaginary Invalid", "revival-play", "Todd Haimes Theatre", "2026-10-22", "Molière, adapted by Bill Irwin",
+      {direction:c("Brandon J. Dirden"), scenic:c("Beowulf Boritt"), costume:c("Karen Perry"),
+       lighting:c("Allen Lee Hughes"), sound:c("John Gromada")},
+      [["Bill Irwin", "Argan", "leading", "actor"],
+       ["Rachel Bloom", "Toinette", "unset", "actress"],
+       ["Brooks Ashmanskas", "Dr. Diafoirus / Purgon", "featured", "actor"],
+       ["Dylan Baker", "Béralde", "featured", "actor"],
+       ["Crystal A. Dickinson", "Béline", "featured", "actress"],
+       ["Hiram Delgado", "Bonnefoy / Thomas / Fleurant", "featured"],
+       ["Daniel Croix Henderson", "Cléante", "featured"],
+       ["Ava Lalezarzadeh", "Angélique", "featured"]],
+      {eligibilityNote:"Roundabout. A new adaptation of a classic still counts as a revival; the adaptation itself is not separately eligible."}),
 
-    S("Seven Winters","new-play","Marlowe Theatre","2026-02-14","2026-02-19",7,
-      "Seven scenes, one bench, twenty-five years. The writing is better than the staging.",
-      "Scene five, two people not saying it. The only time the production got out of the way.",
-      {direction:c("Gerald Voss",6),
-       scenic:c("Lise Aumont",7,"One bench, seven snows."),
-       costume:c("Priya Raghunathan",7),
-       lighting:c("Ines Amadi",8,"Seven distinct winters out of one rig."),
-       sound:c("Tobias Lark",7)},
-      [["Graham Estes","Michael","leading","actor",8,"Ages twenty-five years without a wig trick."],
-       ["Ada Nwosu","Claire","leading","actress",8,"Matches him and then some in scene five."]]),
+    S("A Few Good Men", "revival-play", "Vivian Beaumont Theater", "2026-10-29", "Aaron Sorkin",
+      {direction:c("Michael Arden")},
+      [["Bradley Whitford", "", "unset", "actor"],
+       ["Tom Blyth", "", "unset", "actor"],
+       ["Krysta Rodriguez", "Lt. Cmdr. JoAnne Galloway", "unset", "actress"],
+       ["Stephanie Berry", "Judge Randolph", "featured", "actress"]],
+      {eligibilityNote:"Lincoln Center Theater. First Broadway revival of the 1989 play."}),
 
-    S("The Pirates of Penzance","revival-musical","Avalon Theatre","2026-03-03","2026-03-06",8,
-      "Genuinely funny, properly sung, and for once not embarrassed about the operetta.",
-      "The Major-General's patter at triple speed with the orchestra daring him to fall off.",
-      {direction:c("Rami Okonjo",8,"Farce mechanics are immaculate."),
-       orchestrations:c("Simon Achterberg",8,"New reduction that sounds bigger than the old one."),
-       choreography:c("Denny Ruiz",8,"Sabre routine in act two brought the house down."),
-       scenic:c("Gunnar Eide",7),
-       costume:c("Yuki Tanabe",9,"Wit in every seam. Should win."),
-       lighting:c("Lio Marchetti",6),
-       sound:c("Beatrix Cole",7)},
-      [["Barnaby Quill","Major-General","featured","actor",9,"Best comic performance of the season. Billing says featured — worth arguing."],
-       ["Clementine Fox","Mabel","leading","actress",8,"Real coloratura, real comedy."],
-       ["Niall O'Dea","Frederic","leading","actor",7],
-       ["Sadie Kwan","Ruth","featured","actress",7]],
-      {bookEligible:false, scoreEligible:false}),
+    S("Wanted", "new-musical", "James Earl Jones Theatre", "2026-11-08", "Angelica Chéri and Ross Baum",
+      {direction:c("Stevie Walker-Webb"), book:c("Angelica Chéri"),
+       score:c("Ross Baum (music), Angelica Chéri (lyrics)"), choreography:c("Chelsey Arce")},
+      [["Solea Pfeiffer", "Mary Clarke", "leading", "actress"],
+       ["Liisi LaFontaine", "Martha Clarke", "leading", "actress"],
+       ["Ledisi", "Tallulah Clarke", "featured", "actress"],
+       ["Luke James", "Elijah", "featured", "actor"],
+       ["Bradley Jaden", "Jesse", "featured", "actor"],
+       ["Aurelia Williams", "Sissy", "featured", "actress"],
+       ["Awa Sal Secka", "Flo", "featured", "actress"]],
+      {eligibilityNote:"Two co-leads billed together — if both are placed leading they split the same category."}),
 
-    S("Double Dutch","new-musical","Marlowe Theatre","2026-03-19","2026-03-24",5,
-      "A jukebox show with two good numbers and a book that apologises for existing.",
-      "Jump-rope sequence at the top of act two. That is the show worth keeping.",
-      {direction:c("Lacey Pryor",5),
-       book:c("Milo Eastman",4,"Scene transitions are narrated. Out loud."),
-       score:c("Existing catalogue — not original",0,"Assembled from released recordings. Not score-eligible."),
-       orchestrations:c("Simon Achterberg",7,"Best work anyone did on this."),
-       choreography:c("Maya Oduya",8,"The one reason to be in the room."),
-       scenic:c("Lise Aumont",5),
-       costume:c("Priya Raghunathan",6),
-       lighting:c("Lio Marchetti",6),
-       sound:c("Dev Anand",5)},
-      [["Roxanne Hale","Trina","leading","actress",6],
-       ["Wes Carmody","Duke","featured","actor",5]],
-      {scoreEligible:false, recused:true, recusalNote:"My agency represents the lead producer — recused from every category."}),
+    S("The Fantasticks", "new-musical", "Hayes Theater", "2026-11-16", "Tom Jones and Harvey Schmidt",
+      {direction:c("Christopher Gattelli"), choreography:c("Christopher Gattelli"),
+       scenic:c("Jason Sherwood"), costume:c("Linda Cho"), lighting:c("Jen Schriever"),
+       sound:c("Nevin Steinberg"), orchestrations:c("Sam Davis")},
+      [["Maxim Chlumecky", "Matt", "leading", "actor"],
+       ["Nathan Levy", "Lewis", "leading", "actor"],
+       ["Zane Phillips", "El Gallo, the Narrator", "unset", "actor"],
+       ["Leslie Rodriguez Kritzer", "Mildred Hucklebee", "featured", "actress"],
+       ["Ruthie Ann Miles", "Bessie Mae Bellomy", "featured", "actress"],
+       ["Kevin Del Aguila", "Mortimer", "featured", "actor"],
+       ["David Patrick Kelly", "Henry", "featured", "actor"],
+       ["Ahmad Simmons", "The Mute", "featured"]],
+      {bookEligible:false, scoreEligible:false,
+       eligibilityNote:"Second Stage. The hardest classification of the season: the 1960 show ran Off-Broadway for forty-two years but never on Broadway, so it is not a revival under the rules — yet its book and score are not original to this production. Book and score are switched off here pending a ruling. New production, staging and design are unaffected."}),
 
-    S("Almanac","new-play","Bellerby Theatre","2026-04-09","",0,"","",{},[]),
+    S("Much Ado About Nothing", "revival-play", "Winter Garden Theatre", "2026-11-19", "William Shakespeare",
+      {direction:c("Jamie Lloyd"), scenic:c("Soutra Gilmour"), costume:c("Soutra Gilmour"),
+       lighting:c("Jon Clark"), sound:c("Ben and Max Ringham"), choreography:c("Fabian Aloise")},
+      [["Tom Hiddleston", "Benedick", "leading", "actor"],
+       ["Hayley Atwell", "Beatrice", "leading", "actress"],
+       ["Mara Huf", "Hero", "featured", "actress"],
+       ["James Phoon", "Claudio", "featured", "actor"],
+       ["Gerald Kyd", "Don Pedro", "featured", "actor"],
+       ["Forbes Masson", "Leonato", "featured", "actor"],
+       ["Tim Steed", "Don John", "featured", "actor"],
+       ["Mason Alexander Park", "Margaret", "featured", "unset", true],
+       ["Mika Onyx Johnson", "Borachio", "featured"],
+       ["Phillip Olagoke", "Friar Francis", "featured"]],
+      {eligibilityNote:"Soutra Gilmour is credited on both set and costumes, so this production competes in two design categories on one designer. Mason Alexander Park is left unplaced deliberately: the actor/actress split is the performer's own call, not the ledger's."}),
+
+    S("Inter Alia", "new-play", "Music Box Theatre", "2026-12-01", "Suzie Miller",
+      {direction:c("Justin Martin")},
+      [["Rosamund Pike", "Jessica Parks", "leading", "actress"]],
+      {eligibilityNote:"National Theatre production, transferring with its full West End cast."}),
+
+    S("Galileo", "new-musical", "Sam S. Shubert Theatre", "2026-12-06", "Danny Strong, Zoe Sarnak and Michael Weiner",
+      {direction:c("Michael Mayer"), book:c("Danny Strong"),
+       score:c("Zoe Sarnak and Michael Weiner"), choreography:c("David Neumann")},
+      [["Raúl Esparza", "Galileo Galilei", "leading", "actor"],
+       ["Joy Woods", "Galileo's daughter", "unset", "actress"],
+       ["Jeremy Kushnier", "", "unset", "actor"]],
+      {eligibilityNote:"World premiere was Berkeley Rep, 2024. Out-of-town history does not affect Broadway eligibility."}),
+
+    S("Dolly: A True Original Musical", "new-musical", "St. James Theatre", "2027-01-19", "Dolly Parton and Maria S. Schlatter",
+      {direction:c("Bartlett Sher"), book:c("Dolly Parton and Maria S. Schlatter"),
+       score:c("Dolly Parton"), choreography:c("Mandy Moore"), scenic:c("Derek McLane"),
+       costume:c("Jennifer Moeller"), lighting:c("Donald Holder"), sound:c("Peter Hylenski")},
+      [],
+      {scoreEligible:false,
+       eligibilityNote:"Released catalogue songs plus new material written for the show. Score eligibility turns on how much is genuinely new — switched off here pending a ruling. The book is original and stays eligible. Casting was still to be announced."}),
+
+    S("Mix and Master", "new-play", "Todd Haimes Theatre", "2027-01-27", "Dominique Morisseau",
+      {direction:c("Kamilah Forbes")},
+      [["Ruben Santiago-Hudson", "", "unset", "actor"],
+       ["Kara Young", "", "unset", "actress"]],
+      {eligibilityNote:"Roundabout. Live DJ sets throughout — worth listening for whether the sound design is doing work the ballot should notice."}),
+
+    S("Three Days of Rain", "revival-play", "", "", "Richard Greenberg",
+      {direction:c("Anna D. Shapiro")},
+      [["David Corenswet", "", "unset", "actor"],
+       ["François Arnaud", "", "unset", "actor"],
+       ["Yvonne Strahovski", "", "unset", "actress"]],
+      {eligibilityNote:"February 2027. Theatre and exact dates were still to be announced. Three actors, six roles across two acts — billing will need care."}),
+
+    S("Evita", "revival-musical", "Winter Garden Theatre", "2027-03-25", "Andrew Lloyd Webber and Tim Rice",
+      {direction:c("Jamie Lloyd"), choreography:c("Fabian Aloise")},
+      [["Rachel Zegler", "Eva Perón", "leading", "actress"]],
+      {eligibilityNote:"London Palladium production transferring. Revival, so book and score are not eligible — new orchestrations, if credited, are."}),
+
+    S("Gloria", "new-play", "Hayes Theater", "2027-04-05", "Branden Jacobs-Jenkins",
+      {direction:c("Evan Cabnet")}, [],
+      {eligibilityNote:"Second Stage. Broadway premiere of the 2015 Pulitzer finalist, so Best Play rather than Best Revival. Casting was still to be announced."}),
+
+    S("The Sound of Music", "revival-musical", "Vivian Beaumont Theater", "2027-04-15", "Rodgers and Hammerstein",
+      {direction:c("Lear deBessonet"), choreography:c("Christopher Gattelli")},
+      [["Jasmine Amy Rogers", "Maria Rainer", "leading", "actress"]],
+      {eligibilityNote:"Lincoln Center Theater. First Broadway revival in thirty years."}),
+
+    S("Paddington: The Musical", "new-musical", "Al Hirschfeld Theatre", "2027-04-18", "Tom Fletcher and Jessica Swale",
+      {direction:c("Luke Sheppard"), book:c("Jessica Swale"), score:c("Tom Fletcher"),
+       orchestrations:c("Matt Brind"), choreography:c("Ellen Kane"), scenic:c("Tom Pye"),
+       costume:c("Gabriella Slade"), lighting:c("Neil Austin"), sound:c("Gareth Owen")},
+      [],
+      {eligibilityNote:"West End creative team reuniting. Puppet design by Tahra Zafar has no category of its own — it reads on the ballot through costume or scenic, if at all."}),
+
+    S("The Full Monty", "revival-musical", "Todd Haimes Theatre", "2027-04-25", "Terrence McNally and David Yazbek",
+      {direction:c("Leigh Silverman"), choreography:c("Connor Gallagher")},
+      [],
+      {eligibilityNote:"Roundabout. Opens 25 April 2027 — right against the eligibility cut-off. Confirm which season it lands in before scoring it."}),
+
+    S("Cat on a Hot Tin Roof", "revival-play", "", "", "Tennessee Williams",
+      {direction:c("Sam Gold")}, [],
+      {eligibilityNote:"Spring 2027. Theatre, dates and casting were all still to be announced."}),
+
+    S("Montauk", "new-play", "Samuel J. Friedman Theatre", "", "David Hare",
+      {direction:c("Daniel Sullivan")},
+      [["Laura Linney", "Roxy Margaux", "leading", "actress"]],
+      {eligibilityNote:"Manhattan Theatre Club, spring 2027. World premiere; exact dates were still to be announced."}),
+
+    S("Warriors", "new-musical", "Lunt-Fontanne Theatre", "", "Lin-Manuel Miranda and Eisa Davis",
+      {direction:c("Jenny Koons"), book:c("Lin-Manuel Miranda and Eisa Davis"),
+       score:c("Lin-Manuel Miranda and Eisa Davis"), choreography:c("Andy Blankenbuehler")},
+      [],
+      {eligibilityNote:"April 2027; exact dates were still to be announced. Andy Blankenbuehler is credited as co-director as well as choreographer — that is two separate categories on one person."}),
   ];
-  meta = Object.assign(defaultMeta(), {
-    label:"2025–26 Broadway season", eligibleTotal:11, sample:true,
-  });
 
-  // A ballot part-way through the argument, so the sample shows what a working
-  // ledger looks like: 7 and up nominated, 5 and 6 held, the rest untouched.
+  meta = Object.assign(defaultMeta(), {
+    label:"2026–27 Broadway season",
+    eligibleTotal:shows.length,
+    sample:true,
+  });
   ballot = {picks:{}};
-  for (const cat of CATEGORIES){
-    let placed = 0;
-    for (const c of rank(candidatesFor(cat))){
-      const pick = (c.score >= 7 && placed < targetFor(cat.id)) ? "nom" : c.score >= 5 ? "hold" : "";
-      if (!pick) continue;
-      if (pick === "nom") placed++;
-      ballot.picks[cat.id] = ballot.picks[cat.id] || {};
-      ballot.picks[cat.id][c.key] = pick;
-    }
-  }
 }
 
 /* ============================================================
@@ -893,6 +950,7 @@ function paintStrip(){
     ['<b>' + c.seen + "</b><span>seen</span>", "is-good"],
     ['<b>' + toSee + "</b><span>still to see</span>", cls(toSee)],
     ['<b>' + c.unassessed + "</b><span>unscored</span>", cls(c.unassessed)],
+    ['<b>' + c.toPlace + "</b><span>to place</span>", cls(c.toPlace)],
     ['<b>' + c.revisit + "</b><span>revisit</span>", c.revisit ? "is-warn" : ""],
     ['<b>' + c.catsSet + "/26</b><span>slates set</span>", c.catsSet === 26 ? "is-good" : ""],
     ['<b>' + c.thin + "</b><span>thin fields</span>", cls(c.thin, "is-crit")],
@@ -914,7 +972,8 @@ function visibleShows(){
   const byTitle = (a, b) => titleOf(a).localeCompare(titleOf(b));
   if (sortBy === "score")  list.sort((a, b) => (b.overall - a.overall) || byTitle(a, b));
   else if (sortBy === "title") list.sort(byTitle);
-  else if (sortBy === "opened") list.sort((a, b) => (b.opened || "").localeCompare(a.opened || ""));
+  else if (sortBy === "opened") list.sort((a, b) =>
+    (a.opened ? 0 : 1) - (b.opened ? 0 : 1) || a.opened.localeCompare(b.opened) || byTitle(a, b));
   else list.sort((a, b) => {
     if (!a.seen && !b.seen) return byTitle(a, b);
     if (!a.seen) return -1;
@@ -931,8 +990,10 @@ function renderSeason(){
   let html = "";
 
   if (meta.sample){
-    html += '<div class="banner"><p><strong>This is a sample season</strong> — nine invented productions (and three public-domain revivals) with invented artists, so you can see how the ballot fills in. Clear it when you are ready to log your own.</p>' +
-      '<button class="btn" data-act="clear-sample">Clear sample season</button></div>';
+    html += '<div class="banner"><p><strong>Roster compiled from public announcements as of ' + ROSTER_SOURCED + '.</strong> ' +
+      'Titles, classifications, theatres, opening nights, credits and casting are a matter of record. Every score is zero and every note is empty — those are yours. ' +
+      'Dates move, casting is added, and classifications get ruled on, so check anything you are about to rely on. More productions will be announced through the winter; raise the eligible count as they are.</p>' +
+      '<button class="btn" data-act="clear-sample">Start an empty season</button></div>';
   }
   if (storageNote){
     html += '<div class="banner" style="border-color:var(--crit); border-left-color:var(--crit); background:var(--crit-soft)"><p>' + esc(storageNote) + "</p>" +
@@ -950,7 +1011,7 @@ function renderSeason(){
       .map(([v, l]) => '<option value="' + v + '"' + (filter === v ? " selected" : "") + ">" + esc(l) + "</option>").join("") +
     "</select></div>" +
     '<div class="field"><label for="fSort">Order by</label><select class="inp" id="fSort" data-act="set-sort">' +
-      [["seen","Date seen"],["score","My score"],["opened","Opening night"],["title","Title"]]
+      [["opened","Opening night"],["seen","Date seen"],["score","My score"],["title","Title"]]
       .map(([v, l]) => '<option value="' + v + '"' + (sortBy === v ? " selected" : "") + ">" + l + "</option>").join("") +
     "</select></div>" +
     '<div class="field" style="flex:0 0 128px"><label for="fEligible">Eligible this season</label>' +
@@ -987,12 +1048,14 @@ function renderSeason(){
       if (!s.seen) flags.push('<span class="chip chip-warn">Not seen</span>');
       else if (!assessed(s)) flags.push('<span class="chip chip-crit">Unscored</span>');
       if (s.revisit || stale(s)) flags.push('<span class="chip chip-warn">Revisit</span>');
+      const unplaced = s.performances.filter(p => p.name.trim() && (p.billing === "unset" || p.division === "unset")).length;
+      if (unplaced) flags.push('<span class="chip chip-quiet">' + unplaced + " to place</span>");
       if (s.performances.some(p => p.disputed)) flags.push('<span class="chip chip-quiet">Billing ?</span>');
 
       html += '<button class="lrow" data-act="open-show" data-id="' + s.id + '">' +
         '<div class="c-seen seen">' + (s.seen ? fmtDate(s.seen) + "<small>" + d + " days ago</small>" : '<span style="color:var(--text-3)">—</span>') + "</div>" +
         '<div class="c-title"><div class="title"><em>' + esc(titleOf(s)) + "</em></div>" +
-          '<div class="sub">' + [esc(s.theatre), s.opened ? "opened " + fmtDate(s.opened) : ""].filter(Boolean).join(" &middot; ") + "</div></div>" +
+          '<div class="sub">' + [esc(s.author), esc(s.theatre), s.opened ? "opens " + fmtDate(s.opened) : "date TBA"].filter(Boolean).join(" &middot; ") + "</div></div>" +
         '<div class="c-type"><span class="chip">' + TYPES[s.type].label + "</span></div>" +
         '<div class="c-rate">' + faderStatic(s.overall) + "</div>" +
         '<div class="c-counts counts">' + craftN + " <small>craft</small> &middot; " + castN + " <small>cast</small></div>" +
@@ -1032,8 +1095,8 @@ function renderSheet(){
     return '<div class="perf-row">' +
       '<input class="inp p-name" placeholder="Performer" value="' + esc(p.name) + '" data-field="' + pf("name") + '" aria-label="Performer name">' +
       '<input class="inp" placeholder="Role" value="' + esc(p.role) + '" data-field="' + pf("role") + '" aria-label="Role">' +
-      sel("billing", [["leading","Leading"],["featured","Featured"]]) +
-      sel("division", [["actor","Actor"],["actress","Actress"]]) +
+      sel("billing", [["unset","Not placed"],["leading","Leading"],["featured","Featured"]]) +
+      sel("division", [["unset","Not placed"],["actor","Actor"],["actress","Actress"]]) +
       faderHTML(pf("score"), p.score, "Score for " + (p.name || "performer")) +
       '<input class="inp p-note" placeholder="The moment" value="' + esc(p.note) + '" data-field="' + pf("note") + '" aria-label="Performance note">' +
       '<button class="x" data-act="del-perf" data-id="' + s.id + '" data-pid="' + p.id + '" aria-label="Remove ' + esc(p.name || "performer") + '">&times;</button>' +
@@ -1060,6 +1123,7 @@ function renderSheet(){
         '<input class="inp" id="t-' + s.id + '" value="' + esc(s.title) + '" data-field="' + f("title") + '" placeholder="Title as billed" style="font-family:var(--display); font-size:21px; padding:8px 10px"></div>' +
       '<div class="field"><label for="ty-' + s.id + '">Counts as</label><select class="inp" id="ty-' + s.id + '" data-field="' + f("type") + '" data-rerender="1">' +
         Object.entries(TYPES).map(([v, t]) => '<option value="' + v + '"' + (s.type === v ? " selected" : "") + ">" + t.label + "</option>").join("") + "</select></div>" +
+      '<div class="field"><label for="au-' + s.id + '">Written by</label><input class="inp" id="au-' + s.id + '" value="' + esc(s.author) + '" data-field="' + f("author") + '" placeholder="Author, or book and score credits"></div>' +
       '<div class="field"><label for="th-' + s.id + '">Theatre</label><input class="inp" id="th-' + s.id + '" value="' + esc(s.theatre) + '" data-field="' + f("theatre") + '"></div>' +
       '<div class="field"><label for="op-' + s.id + '">Opening night</label><input class="inp mono" id="op-' + s.id + '" type="date" value="' + esc(s.opened) + '" data-field="' + f("opened") + '"></div>' +
       '<div class="field"><label for="sn-' + s.id + '">Date I saw it</label><input class="inp mono" id="sn-' + s.id + '" type="date" value="' + esc(s.seen) + '" data-field="' + f("seen") + '" data-rerender="1"></div>' +
@@ -1102,6 +1166,8 @@ function renderSheet(){
         check("recused", "I am recused from this production", "Removes it from every category on your ballot.") +
         check("revisit", "Mark for a second viewing", "") +
       "</div>" +
+      '<div class="field" style="margin-bottom:12px"><label for="en-' + s.id + '">Eligibility note</label>' +
+        '<textarea class="inp" id="en-' + s.id + '" data-field="' + f("eligibilityNote") + '" placeholder="Rule questions on this production — revival or premiere, original score or catalogue, cut-off dates">' + esc(s.eligibilityNote) + "</textarea></div>" +
       '<div class="field"><label for="rn-' + s.id + '">Nature of the conflict</label>' +
         '<input class="inp" id="rn-' + s.id + '" value="' + esc(s.recusalNote) + '" data-field="' + f("recusalNote") + '" placeholder="Recorded for the committee"></div>' +
     "</div>" +
@@ -1130,6 +1196,12 @@ function renderBallot(){
     "Set each category's slate size on the right." +
     (recused.length ? " You are recused from " + recused.map(s => italic(titleOf(s))).join(", ") + ", so they appear nowhere below." : "") +
     "</p></div>";
+  if (!shows.some(s => s.seen)){
+    html += '<div class="banner" style="border-color:var(--line-2); border-left-color:var(--accent); background:var(--accent-soft)">' +
+      "<p><strong>Nothing has been seen yet.</strong> A production joins its categories once you fill in <em>date I saw it</em> on its assessment sheet — " +
+      "the credits are already loaded and waiting, so the night you see it you only score what you saw.</p>" +
+      '<button class="btn" data-act="tab" data-tab="season">Open the ledger</button></div>';
+  }
 
   for (const group of GROUPS){
     const cats = CATEGORIES.filter(c => c.group === group);
@@ -1325,7 +1397,6 @@ function setField(spec, value, type){
       if (value === "new-musical"){ s.bookEligible = true; s.scoreEligible = true; }
     }
     else s[p[2]] = value;
-    if (meta.sample){ meta.sample = false; queueSave("meta"); }
     queueSave("show", s.id);
     paintStrip();
   }
@@ -1393,7 +1464,6 @@ document.addEventListener("click", async e => {
   if (act === "new-show"){
     const s = newShow({});
     shows.push(s);
-    if (meta.sample){ meta.sample = false; queueSave("meta"); }
     flushSave("show", s.id);
     openShowId = s.id; pendingFocus = true;
     renderSheet(); render({keepSheet:true});
@@ -1413,7 +1483,7 @@ document.addEventListener("click", async e => {
   if (act === "add-perf"){
     const s = getShow(el.dataset.id);
     if (!s) return;
-    s.performances.push({id:uid(), name:"", role:"", billing:"leading", division:"actor", score:0, note:"", disputed:false});
+    s.performances.push({id:uid(), name:"", role:"", billing:"unset", division:"unset", score:0, note:"", disputed:false});
     flushSave("show", s.id);
     renderSheet();
     const rows = $("#sheetWrap").querySelectorAll(".perf-row .p-name");
@@ -1444,10 +1514,10 @@ document.addEventListener("click", async e => {
     return;
   }
   if (act === "clear-sample"){
-    if (!confirm("Clear all nine sample productions and start your own season?")) return;
+    if (!confirm("Remove all " + shows.length + " productions and start from an empty season? Every credit in the roster goes with them.")) return;
     await replaceAll({shows:[], meta:Object.assign(defaultMeta(), {label:meta.label, sample:false}), ballot:{picks:{}}});
     render();
-    toast("Sample cleared — the season is yours");
+    toast("Season emptied");
     return;
   }
   if (act === "export-txt"){
@@ -1498,7 +1568,7 @@ function render(opts){
 }
 
 initStore()
-  .catch(() => { if (!shows.length) seedSample(); })
+  .catch(() => { if (!shows.length) seedSeason(); })
   .then(() => { render(); })
   .catch(() => { render(); });
 </script>
