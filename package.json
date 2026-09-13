@@ -1,0 +1,9 @@
+{
+  "name": "nominators-ledger",
+  "private": true,
+  "description": "A season-long assessment tool for a Tony nominator.",
+  "scripts": {
+    "test": "node --test tests/storage.test.cjs tests/recovery.test.cjs tests/sync.test.cjs",
+    "build:artifact": "python3 tools/build-artifact.py dist/artifact.html"
+  }
+}

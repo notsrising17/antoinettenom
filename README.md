@@ -129,7 +129,22 @@ What stands between you and a lost season:
 - **Deletes can be undone.** Removing a performance offers it back for twelve
   seconds, with its verdict and any nomination intact.
 
-Run the tests with `node --test tests/`.
+Run the tests with `npm test` (35 of them, no dependencies).
+
+### Season to season
+
+*Archive this season* on the Nominations tab packs the whole season away — in the
+browser, and in the published page's store — and starts a new one. Archived
+seasons stay readable and can be restored from *Restore a snapshot*.
+
+### When the roster is recompiled
+
+New productions get announced all winter. When the built-in roster moves on, a
+ledger you have not started yet simply takes the update. Once you have marked
+anything, the update becomes a **proposal instead**: a review screen listing new
+productions and changed credits, each with a tick box. Nothing you wrote —
+verdicts, scores, notes, dates seen, recusals — is touched either way, and
+productions you added yourself are left alone.
 
 ## Publishing it as an Artifact
 

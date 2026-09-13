@@ -334,6 +334,62 @@ details.passed > summary:hover{color:var(--text)}
 #storageWarning{position:fixed; bottom:12px; left:0; right:0; z-index:95; max-width:680px}
 #storageWarning[hidden]{display:none}
 #storageWarning .banner{background:var(--crit-soft); border-color:var(--crit); margin:0; box-shadow:0 4px 24px #0003}
+/* item 5 — the ten minutes after curtain */
+.quick{position:fixed; inset:0; z-index:70; background:rgba(20,14,15,.55); display:flex; align-items:flex-end; justify-content:center; overflow-y:auto}
+.quick-card{background:var(--bg); width:min(560px,100%); border:1px solid var(--line-2); border-radius:var(--r) var(--r) 0 0; padding:22px 20px 28px; box-shadow:var(--shadow)}
+.quick-card h2{font-family:var(--display); font-size:25px; margin-bottom:4px}
+.quick-card > .hint{margin-bottom:16px}
+.quick-field{margin-bottom:16px}
+.quick-field > label{display:block; font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-3); margin-bottom:6px}
+.quick-card .verdict button{padding:10px 14px; font-size:11px}
+.quick-cast{display:flex; flex-direction:column; gap:7px; max-height:210px; overflow-y:auto}
+.quick-cast label{display:flex; gap:9px; align-items:center; font-size:14px; padding:7px 9px; border:1px solid var(--line); border-radius:var(--r); background:var(--surface); cursor:pointer}
+.quick-cast input{width:17px; height:17px}
+.quick-actions{display:flex; gap:9px; justify-content:flex-end; flex-wrap:wrap; margin-top:20px}
+@media (min-width:620px){ .quick{align-items:center} .quick-card{border-radius:var(--r)} }
+
+/* item 7 — what needs you */
+.attn-group{margin-bottom:26px}
+.attn-group h3{font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); border-bottom:1px solid var(--line); padding-bottom:6px; margin-bottom:10px}
+.attn-row{display:flex; gap:12px; align-items:baseline; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--line); flex-wrap:wrap}
+.attn-row:last-child{border-bottom:0}
+.attn-row .what{font-size:14.5px}
+.attn-row .what em{font-style:italic}
+.attn-none{color:var(--text-3); font-size:14px; padding:6px 0}
+
+/* item 9 — side by side */
+.compare{display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(232px,1fr)); margin-top:14px}
+.compare .card{border:1px solid var(--line); border-radius:var(--r); background:var(--surface); padding:14px; display:flex; flex-direction:column; gap:8px}
+.compare .card.is-nom{border-color:var(--brass); box-shadow:inset 3px 0 0 var(--brass)}
+.compare .who{font-weight:600; font-size:15px; line-height:1.3}
+.compare .where{font-size:13px; color:var(--text-2)}
+.compare .note{font-size:13px; color:var(--text-2); font-style:italic; border-left:2px solid var(--line-2); padding-left:9px}
+.compare .foot{margin-top:auto; display:flex; gap:6px; align-items:center; flex-wrap:wrap; padding-top:6px}
+
+/* item 8 — nudge a candidate up or down */
+.rankers{display:flex; flex-direction:column; gap:2px}
+.rankers button{font-family:var(--mono); font-size:10px; line-height:1; padding:3px 6px; border:1px solid var(--line); background:var(--surface); color:var(--text-3); cursor:pointer; border-radius:2px}
+.rankers button:hover{color:var(--text); border-color:var(--text-3)}
+
+/* item 3 — reviewing a roster update */
+.rup{border:1px solid var(--line); border-radius:var(--r); background:var(--surface); padding:15px; margin-bottom:10px}
+.rup h4{font-size:15.5px; margin-bottom:8px}
+.rup label{display:flex; gap:9px; align-items:flex-start; font-size:14px; padding:5px 0; cursor:pointer}
+.rup label input{margin-top:4px; width:16px; height:16px}
+.rup .was{color:var(--text-3); text-decoration:line-through; margin-right:6px}
+
+/* item 6 — comfortable on a phone */
+@media (max-width:620px){
+  body{font-size:16px}
+  .btn{padding:11px 15px}
+  .verdict button{padding:9px 12px}
+  .verdict.compact button{width:42px; padding:9px 0; font-size:14px}
+  .fader{height:30px} .fader .seg{width:10px}
+  .inp, select.inp, textarea.inp{font-size:16px; padding:10px}
+  .sheet-bar{padding:10px 14px}
+  .x{width:38px; height:38px}
+  .pick{padding:8px 11px}
+}
 .savestate{
   font-family:var(--mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase;
   color:var(--text-3); white-space:nowrap; padding:3px 0;
@@ -381,6 +437,7 @@ details.passed > summary:hover{color:var(--text)}
     <span class="savestate" id="saveState" role="status" aria-live="polite"></span>
     <nav class="tabs" role="tablist" aria-label="Views">
       <button class="tab" role="tab" data-act="tab" data-tab="season" id="tab-season">Season</button>
+      <button class="tab" role="tab" data-act="tab" data-tab="attention" id="tab-attention">Needs you</button>
       <button class="tab" role="tab" data-act="tab" data-tab="ballot" id="tab-ballot">Ballot</button>
       <button class="tab" role="tab" data-act="tab" data-tab="report" id="tab-report">Nominations</button>
     </nav>
@@ -392,6 +449,7 @@ details.passed > summary:hover{color:var(--text)}
 <div class="wrap" id="storageWarning" role="alert" hidden></div>
 
 <div class="sheet-wrap" id="sheetWrap" hidden></div>
+<div class="quick" id="quickWrap" hidden></div>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <footer class="wrap foot">
@@ -414,6 +472,12 @@ const STATUS = {
   pass:     {label:"Pass",     short:"\u2715", cls:"pass"},
 };
 const STATUS_ORDER = ["consider", "", "pass"];
+/* How settled a production's eligibility is. Blank means nobody has looked. */
+const RULINGS = {
+  tentative: {label:"Tentative", chip:"chip-warn"},
+  confirmed: {label:"Confirmed", chip:"chip-good"},
+  disputed:  {label:"Disputed",  chip:"chip-crit"},
+};
 const DATA_VERSION = 2;   // read by defaultMeta() at load, so it must be declared before it
 const STATUS_GROUP = {consider:"Considering", "":"Undecided", pass:"Passed"};
 
@@ -485,6 +549,17 @@ let pendingFocus = false;
 let openShowId = null;
 let openCats = new Set();
 let filter = "all", sortBy = "opened";   // a season not yet under way reads as a schedule
+let query = "";                          // free-text search across the whole ledger
+
+/* Every string on a production that someone might search by, including the
+   people: "Gilmour" should find every production she designed. */
+function haystack(s){
+  return [s.title, s.theatre, s.author, s.eligibilityNote, s.verdict, s.memory,
+    ...CRAFTS.map(c => s.crafts[c.key].credit + " " + s.crafts[c.key].note),
+    ...s.performances.map(p => p.name + " " + p.role + " " + p.note),
+  ].join(" ").toLowerCase();
+}
+const matchesQuery = s => !query || haystack(s).includes(query.toLowerCase());
 let storageNote = "";
 
 function defaultMeta(){
@@ -499,7 +574,8 @@ function blankCrafts(){
 function newShow(patch){
   const s = {
     id:uid(), title:"", type:"new-play", theatre:"", opened:"", seen:"",
-    author:"", eligibilityNote:"",
+    author:"", eligibilityNote:"", rosterId:"",
+    ruling:"", rulingSource:"", rulingDate:"",
     eligible:true, recused:false, recusalNote:"", revisit:false,
     overall:0, verdict:"", memory:"", status:"",
     bookEligible:true, scoreEligible:true,
@@ -514,6 +590,9 @@ function normalizeShow(s){
     s.crafts[c.key] = {credit:v.credit||"", score:+v.score||0, note:v.note||"", status:STATUS[v.status] ? v.status : ""};
   }
   s.author = s.author || ""; s.eligibilityNote = s.eligibilityNote || "";
+  s.rosterId = s.rosterId || "";
+  s.ruling = RULINGS[s.ruling] ? s.ruling : "";
+  s.rulingSource = s.rulingSource || ""; s.rulingDate = s.rulingDate || "";
   s.performances = (s.performances||[]).map(p => ({
     id:p.id||uid(), name:p.name||"", role:p.role||"",
     billing:p.billing||"unset", division:p.division||"unset",
@@ -540,15 +619,21 @@ const LS_KEY = "nominators-ledger-v1";
 const SNAP_PREFIX = LS_KEY + "-snapshot-";
 const SALVAGE_PREFIX = LS_KEY + "-unreadable-";
 const SNAPSHOTS_KEPT = 5;
+const ARCHIVE_PREFIX = LS_KEY + "-season-";
 let db = null, saveTimers = {};
 
 /* One place that knows whether your work is safe, whichever backend is
    running. Painted into the header and, when it goes wrong, into a banner
    that stays up until a write succeeds. */
 const saveState = {pending:0, lastSaved:null, failed:false};
-let recovery = null;   // set when the stored ledger could not be read
+let recovery = null;      // set when the stored ledger could not be read
+let cloudDown = false;    // a read failed: show what we have, refuse to write over it
+/* Documents carrying edits the server has not confirmed. An inbound snapshot
+   must not roll these back underneath the nominator's hands. */
+const dirty = new Set();
 
 function markSaving(){ saveState.pending++; paintSaveState(); }
+const dirtyKey = (kind, id) => kind + ":" + (id || "");
 function markSaved(){
   saveState.pending = Math.max(0, saveState.pending - 1);
   saveState.lastSaved = Date.now();
@@ -573,6 +658,41 @@ function paintSaveState(){
     : "";
 }
 
+/* A finished season is packed away whole and stays readable. The live ledger
+   keeps its own paths untouched, so archiving cannot disturb the season in play. */
+function archiveKeys(){
+  const out = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++){
+      const k = localStorage.key(i);
+      if (k && k.startsWith(ARCHIVE_PREFIX)) out.push(k);
+    }
+  } catch { return []; }
+  return out.sort().reverse();
+}
+function listArchives(){
+  return archiveKeys().map(key => {
+    let d = null;
+    try { d = JSON.parse(localStorage.getItem(key)); } catch { d = null; }
+    return {key, label:(d && d.meta && d.meta.label) || key.replace(ARCHIVE_PREFIX, ""),
+            count:(d && Array.isArray(d.shows)) ? d.shows.length : 0,
+            archivedAt:(d && d.archivedAt) || ""};
+  });
+}
+async function archiveSeason(label){
+  const key = ARCHIVE_PREFIX + new Date().toISOString().slice(0, 10) + "--" + label.replace(/[^A-Za-z0-9]+/g, "-").slice(0, 40);
+  try { localStorage.setItem(key, JSON.stringify({archivedAt:new Date().toISOString(), shows, meta, ballot})); }
+  catch { return {ok:false}; }
+  if (db){
+    // Keep a copy in the store as well, so the archive is not tied to one browser.
+    await inSeries([() => db.doc("archive/" + key.replace(ARCHIVE_PREFIX, "")).set({
+      archivedAt:new Date().toISOString(), label, meta:stripMeta(meta),
+      ballot:{picks:ballot.picks}, shows:shows.map(showBody),
+    })]);
+  }
+  return {ok:true, key};
+}
+
 /* Rolling local copies, so a bad import or a mistaken bulk edit is not the
    end of it. Cheap: a whole season is tens of kilobytes. */
 function snapshotKeys(){
@@ -589,10 +709,11 @@ function takeSnapshot(tag){
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const key = SNAP_PREFIX + (tag ? stamp + "--" + tag : stamp.slice(0, 10));
   try {
-    if (!tag && localStorage.getItem(key)) return;     // one automatic copy a day is plenty
+    if (!tag && localStorage.getItem(key)) return key;   // one automatic copy a day is plenty
     localStorage.setItem(key, JSON.stringify({takenAt:new Date().toISOString(), tag:tag||"daily", shows, meta, ballot}));
     for (const stale of snapshotKeys().slice(SNAPSHOTS_KEPT)) localStorage.removeItem(stale);
-  } catch { /* a snapshot is a nicety; never let it break a save */ }
+    return key;
+  } catch { return ""; }   /* a snapshot is a nicety; never let it break a save */
 }
 function readSnapshot(key){
   try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
@@ -616,11 +737,48 @@ async function initStore(){
 function readable(d){
   return !!d && typeof d === "object" && !Array.isArray(d) && Array.isArray(d.shows);
 }
+
+/* A backup is checked all the way through before anything is replaced. A file
+   that fails here has cost nothing; one that fails halfway through a restore
+   costs the season. Returns every problem found, not just the first. */
+const isObj = v => !!v && typeof v === "object" && !Array.isArray(v);
+function validateLedger(d){
+  const errors = [];
+  if (!readable(d)) return {ok:false, errors:["This file is not a ledger backup."], count:0};
+  if (d.meta !== undefined && !isObj(d.meta)) errors.push("The season settings are damaged.");
+  if (d.ballot !== undefined && !isObj(d.ballot)) errors.push("The ballot is damaged.");
+  if (isObj(d.ballot) && d.ballot.picks !== undefined && !isObj(d.ballot.picks)) errors.push("The ballot selections are damaged.");
+
+  const seen = new Set();
+  d.shows.forEach((show, i) => {
+    const where = "Production " + (i + 1) + (isObj(show) && typeof show.title === "string" && show.title ? ' ("' + show.title + '")' : "");
+    if (!isObj(show)){ errors.push(where + " is not a record."); return; }
+    if (show.id !== undefined && typeof show.id !== "string") errors.push(where + " has an unusable identifier.");
+    if (typeof show.id === "string"){
+      if (seen.has(show.id)) errors.push(where + " repeats an identifier already used.");
+      seen.add(show.id);
+    }
+    for (const field of ["title", "theatre", "author", "seen", "opened", "verdict", "memory"]){
+      if (show[field] !== undefined && typeof show[field] !== "string") errors.push(where + " has a damaged " + field + " field.");
+    }
+    if (show.type !== undefined && !TYPES[show.type]) errors.push(where + " has an unknown category: " + String(show.type) + ".");
+    if (show.crafts !== undefined && !isObj(show.crafts)) errors.push(where + " has damaged element credits.");
+    if (show.performances !== undefined && !Array.isArray(show.performances)) errors.push(where + " has a damaged cast list.");
+    else if (Array.isArray(show.performances)){
+      show.performances.forEach((p, j) => {
+        if (!isObj(p)) errors.push(where + ", performance " + (j + 1) + " is not a record.");
+        else if (p.name !== undefined && typeof p.name !== "string") errors.push(where + ", performance " + (j + 1) + " has a damaged name.");
+      });
+    }
+  });
+  return {ok:errors.length === 0, errors:errors.slice(0, 12), total:errors.length, count:d.shows.length};
+}
 function adopt(d){
   shows = (d.shows||[]).map(normalizeShow);
   meta = Object.assign(defaultMeta(), {dataVersion:0}, d.meta||{});
   ballot = d.ballot && typeof d.ballot === "object" ? d.ballot : {picks:{}};
   if (!ballot.picks || typeof ballot.picks !== "object") ballot.picks = {};
+  if (!ballot.order || typeof ballot.order !== "object") ballot.order = {};
 }
 /* An unreadable ledger is a recovery situation, never a reason to start over:
    keep the bytes, stop, and let the nominator decide. */
@@ -677,15 +835,33 @@ function paintStorageWarning(){
     '</p><button class="btn" data-act="export-json">Download backup</button></div>' : "";
 }
 
+/* A read that failed and a read that found nothing look identical once you
+   collapse them both to null. Keep them apart: seeding a fresh roster is only
+   ever correct when the store genuinely is empty. */
+async function tryRead(run){
+  try { return {ok:true, value:await run()}; }
+  catch (e){ return {ok:false, error:e}; }
+}
+
 async function initDb(){
-  const metaSnap = await db.doc("season/meta").get().catch(() => null);
+  const metaRead = await tryRead(() => db.doc("season/meta").get());
+  const ballotRead = await tryRead(() => db.doc("season/ballot").get());
+  const showsRead = await tryRead(() => db.collection("shows").get());
+
+  if (!metaRead.ok || !ballotRead.ok || !showsRead.ok){
+    // Could not read the saved ledger. Show whatever this browser still holds,
+    // and write nothing at all until a reload succeeds.
+    enterCloudDown();
+    return;
+  }
+
+  const metaSnap = metaRead.value, ballotSnap = ballotRead.value;
   const hasMeta = metaSnap && metaSnap.exists;
   if (hasMeta) meta = Object.assign(defaultMeta(), {dataVersion:0}, metaSnap.data());
-  const ballotSnap = await db.doc("season/ballot").get().catch(() => null);
-  if (ballotSnap && ballotSnap.exists) ballot = Object.assign({picks:{}}, ballotSnap.data());
-  const showSnap = await db.collection("shows").get().catch(() => null);
-  shows = showSnap ? showSnap.docs.map(d => normalizeShow(Object.assign({id:d.id}, d.data()))) : [];
+  if (ballotSnap && ballotSnap.exists) ballot = Object.assign({picks:{}, order:{}}, ballotSnap.data());
+  shows = showsRead.value.docs.map(d => normalizeShow(Object.assign({id:d.id}, d.data())));
 
+  // Only now, having actually read the store, is "empty" a fact rather than a guess.
   const fresh = !hasMeta && shows.length === 0;
   if (fresh || (rosterStale() && untouched())){
     const previous = shows.slice();
@@ -693,15 +869,17 @@ async function initDb(){
     await inSeries(previous.map(s => () => db.doc("shows/" + s.id).delete()));
     await inSeries([
       () => db.doc("season/meta").set(stripMeta(meta)),
-      () => db.doc("season/ballot").set({picks:ballot.picks}),
+      () => db.doc("season/ballot").set(ballotBody()),
       ...shows.map(s => () => db.doc("shows/" + s.id).set(showBody(s))),
     ]);
+  } else if (rosterStale()){
+    rosterUpdate = buildRosterUpdate();   // work already started: ask before touching it
   }
 
   if (migrateVerdicts()){
     await inSeries([
       () => db.doc("season/meta").set(stripMeta(meta)),
-      () => db.doc("season/ballot").set({picks:ballot.picks}),
+      () => db.doc("season/ballot").set(ballotBody()),
       ...shows.map(s => () => db.doc("shows/" + s.id).set(showBody(s))),
     ]);
   }
@@ -709,18 +887,51 @@ async function initDb(){
   mirrorLocal();
 
   db.collection("shows").onSnapshot(snap => {
-    shows = snap.docs.map(d => normalizeShow(Object.assign({id:d.id}, d.data())));
+    const incoming = snap.docs.map(d => normalizeShow(Object.assign({id:d.id}, d.data())));
+    const byId = new Map(incoming.map(s => [s.id, s]));
+    const merged = [];
+    // Anything still waiting to be written stays as the nominator left it.
+    for (const local of shows){
+      if (dirty.has(dirtyKey("show", local.id))){ merged.push(local); byId.delete(local.id); }
+      else if (byId.has(local.id)){ merged.push(byId.get(local.id)); byId.delete(local.id); }
+    }
+    for (const added of incoming) if (byId.has(added.id)) merged.push(added);
+    shows = merged;
     render({keepSheet:true});
   }, () => {});
   db.doc("season/ballot").onSnapshot(s => {
-    if (s.exists){ ballot = Object.assign({picks:{}}, s.data()); render({keepSheet:true}); }
+    if (s.exists && !dirty.has(dirtyKey("ballot"))){
+      ballot = Object.assign({picks:{}, order:{}}, s.data());
+      render({keepSheet:true});
+    }
   }, () => {});
   db.doc("season/meta").onSnapshot(s => {
-    if (s.exists){ meta = Object.assign(defaultMeta(), s.data()); paintStrip(); }
+    if (s.exists && !dirty.has(dirtyKey("meta"))){
+      meta = Object.assign(defaultMeta(), {dataVersion:0}, s.data());
+      paintStrip();
+    }
   }, () => {});
 }
 
+/* Reads failed. Fall back to the browser's mirror so the season is still
+   readable, and refuse every write: the store may hold newer work than this
+   copy, and overwriting it would be worse than not saving at all. */
+function enterCloudDown(){
+  cloudDown = true;
+  let mirrored = null;
+  try { mirrored = JSON.parse(localStorage.getItem(LS_KEY)); } catch { mirrored = null; }
+  if (readable(mirrored)) adopt(mirrored);
+  else { shows = []; ballot = {picks:{}}; }
+  saveState.failed = true;
+  storageNote = "The saved ledger could not be reached, so nothing you change here is being kept. " +
+    (readable(mirrored) ? "This is the copy stored in this browser, which may be behind. " : "") +
+    "Reload to try again — your saved work has not been altered.";
+  paintSaveState();
+  paintStorageWarning();
+}
+
 const showBody = s => { const {id, ...rest} = s; return rest; };
+const ballotBody = () => ({picks:ballot.picks, order:ballot.order || {}});
 
 /* Seeding and restoring touch a dozen documents at once. Firing them in
    parallel is what trips the store's concurrent-write budget, so walk them. */
@@ -750,6 +961,80 @@ function untouched(){
     CRAFTS.some(c => s.crafts[c.key].score || s.crafts[c.key].note || s.crafts[c.key].status));
 }
 const rosterStale = () => (+meta.rosterVersion || 0) !== ROSTER_VERSION;
+let rosterUpdate = null;   // a pending, reviewable set of roster changes
+
+/* What a recompiled roster would change, expressed as choices rather than a
+   replacement. Productions you added yourself are never touched, and neither is
+   anything you wrote: only facts of record move, and only where you accept them. */
+const ROSTER_FIELDS = [
+  ["author", "Written by"], ["theatre", "Theatre"], ["opened", "Opening night"],
+  ["type", "Category"], ["eligibilityNote", "Eligibility note"],
+];
+function rosterMatch(show, entry){
+  return (show.rosterId && show.rosterId === entry.rosterId) ||
+    show.title.trim().toLowerCase() === entry.title.trim().toLowerCase();
+}
+function buildRosterUpdate(){
+  const fresh = [];
+  seedInto(fresh);
+  const added = [], changed = [];
+  for (const entry of fresh){
+    const mine = shows.find(s => rosterMatch(s, entry));
+    if (!mine){ added.push(entry); continue; }
+    const fields = [];
+    for (const [key, label] of ROSTER_FIELDS){
+      if ((entry[key] || "") !== (mine[key] || "")) fields.push({key, label, from:mine[key] || "", to:entry[key] || ""});
+    }
+    for (const c of CRAFTS){
+      const to = (entry.crafts[c.key] || {}).credit || "";
+      const from = (mine.crafts[c.key] || {}).credit || "";
+      if (to && to !== from) fields.push({key:"craft:" + c.key, label:c.label + " credit", from, to});
+    }
+    const cast = entry.performances.filter(p =>
+      !mine.performances.some(q => q.name.trim().toLowerCase() === p.name.trim().toLowerCase()));
+    if (fields.length || cast.length) changed.push({id:mine.id, title:titleOf(mine), fields, cast});
+  }
+  if (!added.length && !changed.length){
+    meta.rosterVersion = ROSTER_VERSION;   // nothing to review; record that we are current
+    queueSave("meta");
+    return null;
+  }
+  return {added, changed, accept:new Set()};
+}
+/* Apply only what was ticked. Verdicts, scores, notes, dates seen, recusals and
+   anything the nominator typed are carried straight through. */
+function applyRosterUpdate(){
+  if (!rosterUpdate) return {added:0, changed:0};
+  let addedN = 0, changedN = 0;
+  for (const entry of rosterUpdate.added){
+    if (!rosterUpdate.accept.has("add:" + entry.rosterId)) continue;
+    shows.push(entry); addedN++;
+    if (db) flushSave("show", entry.id);
+  }
+  for (const group of rosterUpdate.changed){
+    const mine = getShow(group.id);
+    if (!mine) continue;
+    let touched = false;
+    for (const f of group.fields){
+      if (!rosterUpdate.accept.has("set:" + group.id + ":" + f.key)) continue;
+      if (f.key.indexOf("craft:") === 0) mine.crafts[f.key.slice(6)].credit = f.to;
+      else mine[f.key] = f.to;
+      touched = true;
+    }
+    for (const p of group.cast){
+      if (!rosterUpdate.accept.has("cast:" + group.id + ":" + p.name)) continue;
+      mine.performances.push(Object.assign({}, p, {id:uid()}));
+      touched = true;
+    }
+    if (touched){ changedN++; if (db) flushSave("show", mine.id); }
+  }
+  meta.rosterVersion = ROSTER_VERSION;
+  meta.eligibleTotal = Math.max(+meta.eligibleTotal || 0, shows.filter(s => s.eligible).length);
+  queueSave("meta");
+  if (!db) writeLocal();
+  rosterUpdate = null;
+  return {added:addedN, changed:changedN};
+}
 
 /* Verdicts used to live on the ballot as hold/pass alongside the nomination.
    They belong on the element now, since each element sits in exactly one
@@ -771,15 +1056,19 @@ function migrateVerdicts(){
 }
 
 function queueSave(kind, id){
+  if (cloudDown) return;                 // never write over a store we could not read
   // Local storage is synchronous: persist before a close or reload can discard the edit.
   if (!db){ writeLocal(); return; }
-  const key = kind + ":" + (id||"");
+  const key = dirtyKey(kind, id);
+  dirty.add(key);
   clearTimeout(saveTimers[key]);
   saveTimers[key] = setTimeout(() => flushSave(kind, id), 500);
 }
 function flushSave(kind, id){
+  if (cloudDown) return;
   if (!db){ writeLocal(); return; }
-  delete saveTimers[kind + ":" + (id||"")];
+  const key = dirtyKey(kind, id);
+  delete saveTimers[key];
   let write = null;
   if (kind === "show"){
     const s = getShow(id);
@@ -787,12 +1076,12 @@ function flushSave(kind, id){
   } else if (kind === "meta"){
     write = db.doc("season/meta").set(stripMeta(meta));
   } else if (kind === "ballot"){
-    write = db.doc("season/ballot").set({picks:ballot.picks});
+    write = db.doc("season/ballot").set(ballotBody());
   }
-  if (!write) return;
+  if (!write){ dirty.delete(key); return; }
   markSaving();
   mirrorLocal();          // the browser copy lands immediately, whatever the network does
-  write.then(markSaved, noteWriteError);
+  write.then(() => { dirty.delete(key); markSaved(); }, noteWriteError);
 }
 
 /* Nothing may be left sitting in a timer when the tab goes away. */
@@ -828,24 +1117,30 @@ async function removeShow(id){
   if (db){ await db.doc("shows/" + id).delete().catch(() => {}); flushSave("ballot"); }
   else writeLocal();
 }
+/* Replaces the whole ledger and reports honestly: {ok, failed, snapshot}.
+   The snapshot key is the way back if only part of it landed. */
 async function replaceAll(data){
-  takeSnapshot("before-replace");     // the only copy of what is about to go
+  if (cloudDown) return {ok:false, failed:0, blocked:true, snapshot:""};
+  const snapshot = takeSnapshot("before-replace");   // the only copy of what is about to go
   const nextShows = (data.shows||[]).map(normalizeShow);
   const nextMeta = Object.assign(defaultMeta(), data.meta||{});
-  const nextBallot = data.ballot || {picks:{}};
+  const nextBallot = data.ballot && typeof data.ballot === "object" ? data.ballot : {picks:{}};
+  if (!nextBallot.picks || typeof nextBallot.picks !== "object") nextBallot.picks = {};
+  let failed = 0;
   if (db){
     const stale = shows.slice();
     shows = nextShows; meta = nextMeta; ballot = nextBallot;
-    await inSeries([
+    failed = await inSeries([
       ...stale.map(s => () => db.doc("shows/" + s.id).delete()),
       () => db.doc("season/meta").set(stripMeta(meta)),
-      () => db.doc("season/ballot").set({picks:ballot.picks}),
+      () => db.doc("season/ballot").set(ballotBody()),
       ...shows.map(s => () => db.doc("shows/" + s.id).set(showBody(s))),
     ]);
   } else {
     shows = nextShows; meta = nextMeta; ballot = nextBallot;
-    writeLocal();
+    if (!writeLocal()) failed = 1;
   }
+  return {ok:failed === 0, failed, snapshot};
 }
 
 /* ============================================================
@@ -928,6 +1223,29 @@ function setStatus(key, value){
   queueSave("show", sh.id);
 }
 const pickOf = (catId, key) => (ballot.picks[catId] || {})[key] || "";
+/* A nominator's own order, kept per category and independent of any score. */
+const orderOf = catId => (ballot.order && ballot.order[catId]) || [];
+function setOrder(catId, keys){
+  ballot.order = ballot.order || {};
+  ballot.order[catId] = keys;
+  queueSave("ballot");
+}
+function moveInOrder(catId, key, delta, within){
+  const current = orderOf(catId).filter(k => within.includes(k));
+  for (const k of within) if (!current.includes(k)) current.push(k);
+  const at = current.indexOf(key);
+  const to = at + delta;
+  if (at < 0 || to < 0 || to >= current.length) return;
+  current.splice(to, 0, current.splice(at, 1)[0]);
+  setOrder(catId, current);
+}
+/* Manual order wins where it has been set; everything else keeps ranked order. */
+function applyOrder(catId, list){
+  const order = orderOf(catId);
+  if (!order.length) return list;
+  const rankOf = k => { const i = order.indexOf(k); return i < 0 ? Infinity : i; };
+  return list.slice().sort((a, b) => rankOf(a.key) - rankOf(b.key));
+}
 function setPick(catId, key, value){
   ballot.picks[catId] = ballot.picks[catId] || {};
   if (value) ballot.picks[catId][key] = value;
@@ -935,7 +1253,12 @@ function setPick(catId, key, value){
   queueSave("ballot");
 }
 function nomineesFor(cat){
-  return rank(candidatesFor(cat)).filter(c => pickOf(cat.id, c.key) === "nom");
+  return applyOrder(cat.id, rank(candidatesFor(cat)).filter(c => pickOf(cat.id, c.key) === "nom"));
+}
+/* Considered but not nominated: the alternates a meeting always ends up wanting. */
+function alternatesFor(cat){
+  return applyOrder(cat.id, rank(candidatesFor(cat))
+    .filter(c => c.status === "consider" && pickOf(cat.id, c.key) !== "nom"));
 }
 function catHealth(cat){
   const cands = candidatesFor(cat);
@@ -1037,6 +1360,20 @@ const ROSTER_SOURCED = "13 September 2026";
 const ROSTER_VERSION = 2;   // bump when the roster below is recompiled
 
 function seedSeason(){
+  const built = [];
+  seedInto(built);
+  shows = built;
+  meta = Object.assign(defaultMeta(), {
+    label:"2026–27 Broadway season",
+    eligibleTotal:built.length,
+    sample:true,
+    rosterVersion:ROSTER_VERSION,
+    dataVersion:DATA_VERSION,
+  });
+  ballot = {picks:{}};
+}
+
+function seedInto(target){
   const S = (title, type, theatre, opened, author, crafts, perfs, extra) => newShow(Object.assign({
     title, type, theatre, opened, author,
     crafts:Object.assign(blankCrafts(), crafts),
@@ -1044,10 +1381,11 @@ function seedSeason(){
       id:uid(), name:p[0], role:p[1]||"", billing:p[2]||"unset", division:p[3]||"unset",
       score:0, note:"", disputed:!!p[4],
     })),
+    rosterId:title,                      // stable identity across recompiles
   }, extra||{}));
   const c = credit => ({credit, score:0, note:""});
 
-  shows = [
+  target.push(
     S("Paranormal Activity", "new-play", "August Wilson Theatre", "2026-09-15", "Levi Holloway",
       {direction:c("Felix Barrett")}, [],
       {eligibilityNote:"Transfer of the Olivier-nominated London production. Casting was still to be announced when this roster was compiled."}),
@@ -1209,17 +1547,8 @@ function seedSeason(){
       {direction:c("Jenny Koons"), book:c("Lin-Manuel Miranda and Eisa Davis"),
        score:c("Lin-Manuel Miranda and Eisa Davis"), choreography:c("Andy Blankenbuehler")},
       [],
-      {eligibilityNote:"April 2027; exact dates were still to be announced. Andy Blankenbuehler is credited as co-director as well as choreographer — that is two separate categories on one person."}),
-  ];
-
-  meta = Object.assign(defaultMeta(), {
-    label:"2026–27 Broadway season",
-    eligibleTotal:shows.length,
-    sample:true,
-    rosterVersion:ROSTER_VERSION,
-    dataVersion:DATA_VERSION,
-  });
-  ballot = {picks:{}};
+      {eligibilityNote:"April 2027; exact dates were still to be announced. Andy Blankenbuehler is credited as co-director as well as choreographer — that is two separate categories on one person."})
+  );
 }
 
 /* ============================================================
@@ -1340,7 +1669,7 @@ function paintStrip(){
    Season view — the ledger
    ============================================================ */
 function visibleShows(){
-  let list = shows.slice();
+  let list = shows.filter(matchesQuery);
   if (filter === "unseen")     list = list.filter(s => !s.seen);
   if (filter === "unmarked")    list = list.filter(s => s.seen && !assessed(s));
   if (filter === "considering") list = list.filter(s => marksOn(s, "consider") > 0);
@@ -1360,8 +1689,169 @@ function visibleShows(){
   return list;
 }
 
+/* ============================================================
+   Quick log, needs-you, compare, roster review
+   ============================================================ */
+let quickFor = null, compareCat = null, quickPicking = false, quickQuery = "";
+
+function renderQuick(){
+  const wrap = $("#quickWrap");
+  if (!quickFor && !quickPicking){ wrap.hidden = true; wrap.innerHTML = ""; document.body.style.overflow = ""; return; }
+
+  if (quickPicking){
+    const q = quickQuery.toLowerCase();
+    const pool = shows.filter(s => s.eligible && (!q || haystack(s).includes(q)))
+      .sort((a, b) => (a.seen ? 1 : 0) - (b.seen ? 1 : 0) || titleOf(a).localeCompare(titleOf(b)));
+    wrap.hidden = false;
+    document.body.style.overflow = "hidden";
+    wrap.innerHTML = '<div class="quick-card" role="dialog" aria-modal="true" aria-label="Which production">' +
+      '<span class="eyebrow">Just saw it</span><h2>Which one?</h2>' +
+      '<p class="hint">Not-yet-seen productions first.</p>' +
+      '<div class="quick-field"><input class="inp" id="quickSearch" type="search" value="' + esc(quickQuery) +
+        '" data-act="quick-search" placeholder="Start typing a title" autocomplete="off"></div>' +
+      '<div class="quick-cast" style="max-height:300px">' +
+        (pool.length ? pool.slice(0, 40).map(s =>
+          '<label style="cursor:pointer"><span style="flex:1"><strong>' + esc(titleOf(s)) + "</strong>" +
+          '<br><span class="hint">' + [esc(s.theatre), s.seen ? "seen " + fmtDate(s.seen) : "not seen"].filter(Boolean).join(" &middot; ") +
+          "</span></span>" +
+          '<button class="btn btn-sm" data-act="quick-pick" data-id="' + s.id + '">Choose</button></label>').join("")
+        : '<p class="hint">Nothing matches.</p>') +
+      "</div>" +
+      '<div class="quick-actions"><button class="btn" data-act="quick-close">Cancel</button></div></div>';
+    return;
+  }
+  const s = getShow(quickFor);
+  if (!s){ quickFor = null; wrap.hidden = true; return; }
+  const today = new Date().toISOString().slice(0, 10);
+  const cast = s.performances.filter(p => p.name.trim());
+  wrap.hidden = false;
+  document.body.style.overflow = "hidden";
+  wrap.innerHTML = '<div class="quick-card" role="dialog" aria-modal="true" aria-label="Log a viewing">' +
+    '<span class="eyebrow">Just saw it</span>' +
+    "<h2>" + esc(titleOf(s)) + "</h2>" +
+    '<p class="hint">Four things while it is fresh. The credits are already loaded; the full sheet can wait.</p>' +
+    '<div class="quick-field"><label for="qd">Date I saw it</label>' +
+      '<input class="inp mono" id="qd" type="date" value="' + esc(s.seen || today) + '" data-field="show:' + s.id + ':seen"></div>' +
+    '<div class="quick-field"><label>The production</label>' +
+      verdictHTML(s.id + ":show", s.status, titleOf(s), false) + "</div>" +
+    '<div class="quick-field"><label for="qm">What will still be in your head in April</label>' +
+      '<textarea class="inp" id="qm" data-field="show:' + s.id + ':memory" placeholder="The image, the sound, the two minutes you would describe">' + esc(s.memory) + "</textarea></div>" +
+    (cast.length ? '<div class="quick-field"><label>Anyone who stood out</label><div class="quick-cast">' +
+      cast.map(p => '<label><input type="checkbox" data-act="quick-cast" data-id="' + s.id + '" data-pid="' + p.id + '"' +
+        (p.status === "consider" ? " checked" : "") + "><span>" + esc(p.name) +
+        (p.role ? ' <span style="color:var(--text-3)">' + esc(p.role) + "</span>" : "") + "</span></label>").join("") +
+      "</div></div>" : "") +
+    '<div class="quick-actions">' +
+      '<button class="btn" data-act="quick-full" data-id="' + s.id + '">Open the full sheet</button>' +
+      '<button class="btn btn-primary" data-act="quick-close">Done</button>' +
+    "</div></div>";
+}
+
+/* Everything with your name on it, in one place. */
+function attentionItems(){
+  const live = shows.filter(s => s.eligible && !s.recused);
+  const link = s => '<button class="btn btn-sm" data-act="open-show" data-id="' + s.id + '">Open</button>';
+  return [
+    {title:"Seen, but nothing marked", rows:live.filter(s => s.seen && !assessed(s))
+      .map(s => ({what:"<em>" + esc(titleOf(s)) + "</em> \u2014 seen " + fmtDate(s.seen) + ", " + seenAgo(s.seen), act:link(s)}))},
+    {title:"Performances waiting to be placed", rows:live.flatMap(s =>
+      s.performances.filter(p => p.name.trim() && (p.billing === "unset" || p.division === "unset"))
+        .map(p => ({what:esc(p.name) + " in <em>" + esc(titleOf(s)) + "</em>" +
+          (p.billing === "unset" && p.division === "unset" ? " \u2014 billing and category"
+            : p.billing === "unset" ? " \u2014 leading or featured" : " \u2014 actor or actress"), act:link(s)})))},
+    {title:"Eligibility still unsettled", rows:live.filter(s => s.seen && s.eligibilityNote && s.ruling !== "confirmed")
+      .map(s => ({what:"<em>" + esc(titleOf(s)) + "</em> \u2014 " +
+        (s.ruling ? RULINGS[s.ruling].label.toLowerCase() : "no ruling recorded"), act:link(s)}))},
+    {title:"Worth a second viewing", rows:live.filter(s => s.revisit || stale(s))
+      .map(s => ({what:"<em>" + esc(titleOf(s)) + "</em> \u2014 seen " + seenAgo(s.seen), act:link(s)}))},
+    {title:"Not seen yet", rows:live.filter(s => !s.seen)
+      .map(s => ({what:"<em>" + esc(titleOf(s)) + "</em>" + (s.opened ? " \u2014 opens " + fmtDate(s.opened) : " \u2014 date to be announced"), act:link(s)}))},
+  ].filter(g => g.rows.length);
+}
+function renderAttention(){
+  const groups = attentionItems();
+  const total = groups.reduce((n, g) => n + g.rows.length, 0);
+  let html = '<div class="sec-head"><h2>Needs you</h2><p>' +
+    (total ? total + " open item" + (total === 1 ? "" : "s") + ", newest work first. Everything here is a decision only you can make."
+           : "Nothing outstanding. Every production you have seen is marked, every performance placed.") + "</p></div>";
+  if (!total) return html + '<div class="empty"><h3>All clear</h3><p>Come back after the next show.</p></div>';
+  for (const g of groups){
+    html += '<div class="attn-group"><h3>' + esc(g.title) + " &middot; " + g.rows.length + "</h3>" +
+      g.rows.map(r => '<div class="attn-row"><span class="what">' + r.what + "</span>" + r.act + "</div>").join("") +
+      "</div>";
+  }
+  return html;
+}
+
+/* Side by side, because choosing five from nine is not a vertical task. */
+function renderCompare(cat){
+  const h = catHealth(cat);
+  const list = applyOrder(cat.id, rank(h.cands).filter(c => c.status !== "pass"));
+  return '<div class="sec-head"><h2>' + esc(cat.name) + '</h2><p>' + list.length +
+      " candidate" + (list.length === 1 ? "" : "s") + " side by side, passed ones left out. " +
+      h.noms + " of " + h.target + " nominated.</p></div>" +
+    '<p><button class="btn" data-act="close-compare">Back to the ballot</button></p>' +
+    (list.length ? '<div class="compare">' + list.map(c => {
+      const pick = pickOf(cat.id, c.key);
+      return '<div class="card' + (pick === "nom" ? " is-nom" : "") + '">' +
+        '<div class="who">' + esc(c.who) + "</div>" +
+        '<div class="where">' + (c.where ? italic(c.where) : "") + (c.role ? " &middot; " + esc(c.role) : "") + "</div>" +
+        '<div class="where mono" style="font-size:11.5px; color:var(--text-3)">' +
+          (c.seen ? "seen " + fmtDate(c.seen) + ", " + seenAgo(c.seen) : "") +
+          (c.score ? " &middot; scored " + c.score : "") + "</div>" +
+        (c.note ? '<div class="note">' + esc(c.note) + "</div>" : '<div class="note" style="color:var(--text-3); border-color:var(--line)">No note written.</div>') +
+        '<div class="foot">' + verdictHTML(c.key, c.status, c.who, true) +
+          (c.status === "consider" ? '<button class="pick nom" data-act="pick" data-cat="' + cat.id + '" data-key="' + esc(c.key) +
+            '" data-val="nom" aria-pressed="' + (pick === "nom") + '">' + (pick === "nom" ? "Nominated" : "Nominate") + "</button>" : "") +
+        "</div></div>";
+    }).join("") + "</div>" : '<div class="empty"><h3>Nothing to compare yet</h3></div>');
+}
+
+/* A roster recompile is a proposal, not an edict. */
+function renderRosterUpdate(){
+  const u = rosterUpdate;
+  const tick = (id, label, detail) =>
+    '<label><input type="checkbox" data-act="rup-toggle" data-key="' + esc(id) + '"' +
+    (u.accept.has(id) ? " checked" : "") + "><span>" + label + (detail ? '<br><span class="hint">' + detail + "</span>" : "") + "</span></label>";
+  let html = '<div class="recovery"><span class="eyebrow">Roster update</span>' +
+    "<h2>The roster has been recompiled</h2>" +
+    "<p>These are the differences between your ledger and the roster as compiled on " + ROSTER_SOURCED + ". " +
+    "Nothing is applied unless you tick it, and nothing you have written \u2014 verdicts, scores, notes, dates seen, " +
+    "recusals \u2014 is touched either way. Productions you added yourself are left alone.</p>" +
+    '<p><button class="btn" data-act="rup-all">Select everything</button> ' +
+    '<button class="btn btn-ghost" data-act="rup-none">Select nothing</button></p>';
+
+  if (u.added.length){
+    html += '<h3 style="font-family:var(--display); font-size:20px; margin:22px 0 8px">New productions &middot; ' + u.added.length + "</h3>";
+    for (const e of u.added){
+      html += '<div class="rup">' + tick("add:" + e.rosterId, "<strong>" + esc(e.title) + "</strong>",
+        [esc(e.author), esc(e.theatre), e.opened ? "opens " + fmtDate(e.opened) : "date to be announced", TYPES[e.type].label]
+          .filter(Boolean).join(" &middot; ")) + "</div>";
+    }
+  }
+  if (u.changed.length){
+    html += '<h3 style="font-family:var(--display); font-size:20px; margin:22px 0 8px">Changed details &middot; ' + u.changed.length + "</h3>";
+    for (const g of u.changed){
+      html += '<div class="rup"><h4>' + esc(g.title) + "</h4>" +
+        g.fields.map(f => tick("set:" + g.id + ":" + f.key, esc(f.label) + ": " +
+          (f.from ? '<span class="was">' + esc(f.from) + "</span>" : "") + "<strong>" + esc(f.to || "(cleared)") + "</strong>")).join("") +
+        g.cast.map(p => tick("cast:" + g.id + ":" + p.name, "Add to cast: <strong>" + esc(p.name) + "</strong>" +
+          (p.role ? " as " + esc(p.role) : ""))).join("") +
+        "</div>";
+    }
+  }
+  html += '<div class="quick-actions" style="justify-content:flex-start; margin-top:22px">' +
+    '<button class="btn btn-primary" data-act="rup-apply">Apply what is ticked</button>' +
+    '<button class="btn" data-act="rup-later">Not now</button></div></div>';
+  return html;
+}
+
 function renderRecovery(){
   const browsing = recovery.browsing;
+  const archives = listArchives().map(a =>
+    '<button class="btn" data-act="restore-snap" data-key="' + esc(a.key) + '">' +
+    esc(a.label) + " &middot; " + a.count + " production" + (a.count === 1 ? "" : "s") +
+    (a.archivedAt ? " &middot; archived " + new Date(a.archivedAt).toLocaleDateString() : "") + "</button>").join("");
   const snaps = recovery.snapshots.map(key => {
     const snap = readSnapshot(key);
     const when = snap && snap.takenAt ? new Date(snap.takenAt).toLocaleString() : key.replace(SNAP_PREFIX, "");
@@ -1447,9 +1937,17 @@ function renderSeason(){
     "</select></div>" +
     '<div class="field" style="flex:0 0 128px"><label for="fEligible">Eligible this season</label>' +
       '<input class="inp mono" id="fEligible" type="number" min="0" max="200" value="' + (+meta.eligibleTotal || 0) + '" data-field="meta:eligibleTotal" data-type="number" data-rerender="1"></div>' +
+    '<div class="field" style="flex:1 1 210px"><label for="fSearch">Search</label>' +
+      '<input class="inp" id="fSearch" type="search" value="' + esc(query) + '" data-act="set-query" ' +
+      'placeholder="Title, theatre, designer, performer" autocomplete="off"></div>' +
     '<div class="spacer"></div>' +
-    '<button class="btn btn-primary" data-act="new-show">+ Log a production</button>' +
+    '<button class="btn btn-primary" data-act="quick-open">I just saw a show</button>' +
+    '<button class="btn" data-act="new-show">+ Add a production</button>' +
   "</div>";
+  if (query){
+    html += '<p class="hint" style="margin:-6px 0 14px">' + list.length + " of " + shows.length +
+      ' productions match \u201c' + esc(query) + '\u201d. <button class="btn btn-sm btn-ghost" data-act="clear-query">Clear</button></p>';
+  }
 
   if (c.unlogged > 0){
     html += '<p class="hint" style="margin:-6px 0 16px">' + c.unlogged + " eligible production" + (c.unlogged === 1 ? "" : "s") +
@@ -1482,6 +1980,8 @@ function renderSeason(){
       if (s.revisit || stale(s)) flags.push('<span class="chip chip-warn">Revisit</span>');
       const unplaced = s.performances.filter(p => p.name.trim() && (p.billing === "unset" || p.division === "unset")).length;
       if (unplaced) flags.push('<span class="chip chip-quiet">' + unplaced + " to place</span>");
+      if (s.ruling) flags.push('<span class="chip ' + RULINGS[s.ruling].chip + '">' + RULINGS[s.ruling].label + "</span>");
+      else if (s.seen && s.eligibilityNote) flags.push('<span class="chip chip-quiet">No ruling</span>');
       if (s.performances.some(p => p.disputed)) flags.push('<span class="chip chip-quiet">Billing ?</span>');
 
       html += '<button class="lrow" data-act="open-show" data-id="' + s.id + '">' +
@@ -1614,6 +2114,14 @@ function renderSheet(){
         check("recused", "I am recused from this production", "Removes it from every category on your ballot.") +
         check("revisit", "Mark for a second viewing", "") +
       "</div>" +
+      '<div class="grid3" style="margin-bottom:12px">' +
+        '<div class="field"><label for="rg-' + s.id + '">Ruling</label><select class="inp" id="rg-' + s.id + '" data-field="' + f("ruling") + '" data-rerender="1">' +
+          '<option value=""' + (s.ruling ? "" : " selected") + ">Not looked at</option>" +
+          Object.entries(RULINGS).map(([v, r]) => '<option value="' + v + '"' + (s.ruling === v ? " selected" : "") + ">" + r.label + "</option>").join("") +
+        "</select></div>" +
+        '<div class="field"><label for="rd-' + s.id + '">Ruled on</label><input class="inp mono" id="rd-' + s.id + '" type="date" value="' + esc(s.rulingDate) + '" data-field="' + f("rulingDate") + '"></div>' +
+        '<div class="field"><label for="rs-' + s.id + '">Source</label><input class="inp" id="rs-' + s.id + '" value="' + esc(s.rulingSource) + '" data-field="' + f("rulingSource") + '" placeholder="Where the ruling came from"></div>' +
+      "</div>" +
       '<div class="field" style="margin-bottom:12px"><label for="en-' + s.id + '">Eligibility note</label>' +
         '<textarea class="inp" id="en-' + s.id + '" data-field="' + f("eligibilityNote") + '" placeholder="Rule questions on this production — revival or premiere, original score or catalogue, cut-off dates">' + esc(s.eligibilityNote) + "</textarea></div>" +
       '<div class="field"><label for="rn-' + s.id + '">Nature of the conflict</label>' +
@@ -1678,8 +2186,9 @@ function renderBallot(){
 
       if (open){
         html += '<div class="cat-body">' +
-          '<div style="display:flex; justify-content:flex-end; padding:8px 0 2px">' +
-            '<label class="target">Slate size <input class="inp mono" type="number" min="1" max="10" value="' + h.target +
+          '<div style="display:flex; align-items:center; gap:10px; padding:8px 0 2px">' +
+            '<button class="btn btn-sm" data-act="compare" data-id="' + cat.id + '" style="margin-right:auto">Compare side by side</button>' +
+          '<label class="target">Slate size <input class="inp mono" type="number" min="1" max="10" value="' + h.target +
             '" data-field="target:' + cat.id + '" data-type="number" data-rerender="1"></label></div>';
         if (!h.cands.length){
           html += '<p class="hint" style="padding:10px 0 4px">Nothing eligible yet. A candidate appears here once the production is seen and carries a credit in this category.</p>';
@@ -1698,6 +2207,10 @@ function renderBallot(){
                 (c.note ? '<div class="cand-note">' + esc(c.note) + "</div>" : "") +
               "</div>" +
               '<div class="cand-acts">' +
+                (c.status === "consider" ? '<span class="rankers">' +
+                  '<button data-act="rank" data-cat="' + cat.id + '" data-key="' + esc(c.key) + '" data-d="-1" aria-label="Move up">\u25B2</button>' +
+                  '<button data-act="rank" data-cat="' + cat.id + '" data-key="' + esc(c.key) + '" data-d="1" aria-label="Move down">\u25BC</button>' +
+                  "</span>" : "") +
                 (c.status === "consider"
                   ? '<button class="pick nom" data-act="pick" data-cat="' + cat.id + '" data-key="' + esc(c.key) +
                     '" data-val="nom" aria-pressed="' + (pick === "nom") + '">' + (pick === "nom" ? "Nominated" : "Nominate") + "</button>"
@@ -1711,7 +2224,7 @@ function renderBallot(){
             return '<div class="cand-group g-' + (key || "undecided") + '"><h4>' + title + '</h4><span class="n">' +
               list.length + "</span></div>" + list.map(row).join("");
           };
-          html += group("consider", g.consider);
+          html += group("consider", applyOrder(cat.id, g.consider));
           html += group("", g[""]);
           if (g.pass.length){
             html += '<details class="passed"><summary>' + g.pass.length + " passed</summary>" +
@@ -1769,11 +2282,30 @@ function renderReport(){
       } else {
         html += "<ol>" + noms.map(n => "<li>" + esc(n.who) +
           (n.where ? " — " + italic(n.where) : "") +
-          (n.role ? " <span style=\"color:var(--text-3)\">as " + esc(n.role) + "</span>" : "") + "</li>").join("") + "</ol>";
+          (n.role ? " <span style=\"color:var(--text-3)\">as " + esc(n.role) + "</span>" : "") +
+          (n.note ? '<div class="cand-note" style="margin:3px 0 6px">' + esc(n.note) + "</div>" : "") + "</li>").join("") + "</ol>";
+        const alts = alternatesFor(cat);
+        if (alts.length){
+          html += '<p class="none" style="color:var(--text-3)">Alternates: ' +
+            alts.map(a => esc(a.who) + (a.where ? " (" + esc(a.where) + ")" : "")).join("; ") + "</p>";
+        }
       }
       html += "</div>";
     }
     html += "</div>";
+  }
+
+  const unsettled = shows.filter(s => s.eligible && !s.recused && s.seen && s.eligibilityNote && s.ruling !== "confirmed");
+  const unplaced = shows.reduce((n, s) => n + s.performances.filter(p => p.name.trim() && (p.billing === "unset" || p.division === "unset")).length, 0);
+  const openCats = CATEGORIES.filter(c => catHealth(c).state !== "set");
+  if (unsettled.length || unplaced || openCats.length){
+    html += '<div class="rgroup"><h3>Unresolved before the meeting</h3><div class="rcat">';
+    if (openCats.length) html += "<p>" + openCats.length + " categor" + (openCats.length === 1 ? "y has" : "ies have") +
+      " no settled slate: " + openCats.slice(0, 8).map(c => esc(c.name)).join("; ") + (openCats.length > 8 ? "; and more." : ".") + "</p>";
+    if (unplaced) html += "<p>" + unplaced + " performance" + (unplaced === 1 ? "" : "s") + " still to be placed as leading or featured.</p>";
+    if (unsettled.length) html += "<p>Eligibility not confirmed: " +
+      unsettled.map(s => italic(titleOf(s)) + (s.ruling ? " (" + RULINGS[s.ruling].label.toLowerCase() + ")" : "")).join("; ") + ".</p>";
+    html += "</div></div>";
   }
 
   const t = tally();
@@ -1790,6 +2322,7 @@ function renderReport(){
     '<button class="btn" data-act="export-json">Download a full backup</button>' +
     '<button class="btn" data-act="import">Restore from backup</button>' +
     '<button class="btn" data-act="show-snaps">Restore a snapshot</button>' +
+    '<button class="btn" data-act="archive-season">Archive this season</button>' +
     '<button class="btn btn-ghost" data-act="print">Print</button>' +
     '<input type="file" id="importFile" accept="application/json,.json" hidden></div>' +
     '<p class="hint no-print" style="margin-top:10px; max-width:60ch">The ballot download is the plain-text list above. The backup is everything — every score, note and conflict — and is the file to keep.</p>';
@@ -1878,8 +2411,33 @@ function setField(spec, value, type){
   }
 }
 
+/* Typing never fires a click, so the search box is driven from input events
+   and puts the caret back where it was after the list redraws. */
+let queryTimer;
 document.addEventListener("input", e => {
   const t = e.target;
+  if (t.dataset && t.dataset.act === "set-query"){
+    query = t.value.trim();
+    clearTimeout(queryTimer);
+    queryTimer = setTimeout(() => {
+      const at = t.selectionStart;
+      render();
+      const box = $("#fSearch");
+      if (box){ box.focus(); try { box.setSelectionRange(at, at); } catch {} }
+    }, 200);
+    return;
+  }
+  if (t.dataset && t.dataset.act === "quick-search"){
+    quickQuery = t.value.trim();
+    clearTimeout(queryTimer);
+    queryTimer = setTimeout(() => {
+      const at = t.selectionStart;
+      renderQuick();
+      const box = document.querySelector("#quickSearch");
+      if (box){ box.focus(); try { box.setSelectionRange(at, at); } catch {} }
+    }, 200);
+    return;
+  }
   if (!t.dataset || !t.dataset.field) return;
   // Record every keystroke, re-render nothing: a re-render here would take the caret with it.
   setField(t.dataset.field, t.type === "checkbox" ? t.checked : t.value, t.dataset.type);
@@ -1934,6 +2492,91 @@ document.addEventListener("click", async e => {
   const act = el.dataset.act;
 
   if (act === "undo"){ takeUndo(); return; }
+
+  if (act === "clear-query"){ query = ""; render(); return; }
+
+  /* ---- quick log ---- */
+  if (act === "quick-open"){
+    if (!shows.some(s => s.eligible)){ toast("No productions to log yet."); return; }
+    quickPicking = true; quickQuery = "";
+    renderQuick();
+    const box = document.querySelector("#quickSearch");
+    if (box) box.focus();
+    return;
+  }
+  if (act === "quick-pick"){
+    quickFor = el.dataset.id; quickPicking = false;
+    const s = getShow(quickFor);
+    if (s && !s.seen){ s.seen = new Date().toISOString().slice(0, 10); queueSave("show", s.id); }
+    renderQuick(); render({keepSheet:true});
+    return;
+  }
+  if (act === "quick-close"){ quickFor = null; quickPicking = false; renderQuick(); render(); return; }
+  if (act === "quick-full"){
+    openShowId = el.dataset.id; quickFor = null; quickPicking = false;
+    renderQuick(); renderSheet();
+    return;
+  }
+  if (act === "quick-cast"){
+    const show = getShow(el.dataset.id);
+    const perf = show && show.performances.find(p => p.id === el.dataset.pid);
+    if (!perf) return;
+    perf.status = el.checked ? "consider" : "";
+    queueSave("show", show.id);
+    paintStrip();
+    return;
+  }
+
+  /* ---- compare ---- */
+  if (act === "compare"){ compareCat = el.dataset.id; render(); window.scrollTo({top:0, behavior:"instant"}); return; }
+  if (act === "close-compare"){ compareCat = null; render(); return; }
+
+  /* ---- manual ranking ---- */
+  if (act === "rank"){
+    const cat = CAT_BY_ID[el.dataset.cat];
+    const within = rank(candidatesFor(cat)).filter(c => c.status === "consider").map(c => c.key);
+    moveInOrder(cat.id, el.dataset.key, +el.dataset.d, within);
+    render();
+    return;
+  }
+
+  /* ---- roster update review ---- */
+  if (act === "rup-toggle"){
+    const key = el.dataset.key;
+    if (rosterUpdate.accept.has(key)) rosterUpdate.accept.delete(key); else rosterUpdate.accept.add(key);
+    return;
+  }
+  if (act === "rup-all" || act === "rup-none"){
+    rosterUpdate.accept.clear();
+    if (act === "rup-all"){
+      for (const e of rosterUpdate.added) rosterUpdate.accept.add("add:" + e.rosterId);
+      for (const g of rosterUpdate.changed){
+        for (const f of g.fields) rosterUpdate.accept.add("set:" + g.id + ":" + f.key);
+        for (const p of g.cast) rosterUpdate.accept.add("cast:" + g.id + ":" + p.name);
+      }
+    }
+    render();
+    return;
+  }
+  if (act === "rup-apply"){
+    const done = applyRosterUpdate();
+    render();
+    toast(done.added + " added, " + done.changed + " updated");
+    return;
+  }
+  if (act === "rup-later"){ rosterUpdate = null; render(); return; }
+
+  /* ---- archive a finished season ---- */
+  if (act === "archive-season"){
+    if (!confirm("Archive \u201c" + meta.label + "\u201d and start a new season?\n\n" +
+      "The archived season stays readable and can be restored; the ledger then loads the current roster.")) return;
+    const result = await archiveSeason(meta.label);
+    if (!result.ok){ toast("Could not archive — no room in this browser."); return; }
+    await replaceAll({shows:[], meta:Object.assign(defaultMeta(), {label:"New season", sample:false}), ballot:{picks:{}, order:{}}});
+    render();
+    toast("Archived. Start the new season by adding productions.");
+    return;
+  }
   if (act === "snooze-nudge"){
     meta.nudgeSnoozed = new Date().toISOString();
     queueSave("meta"); render();
@@ -1944,14 +2587,18 @@ document.addEventListener("click", async e => {
     return;
   }
   if (act === "restore-snap"){
-    const snap = readSnapshot(el.dataset.key);
+    const snap = readSnapshot(el.dataset.key);   // snapshots and archives share a shape
     if (!readable(snap)){ toast("That snapshot could not be read either."); return; }
-    const n = (snap.shows || []).length;
-    if (!confirm("Restore this snapshot? It replaces what is on screen with " + n + " production" + (n === 1 ? "" : "s") + ".")) return;
-    await replaceAll(snap);
+    const check = validateLedger(snap);
+    if (!check.ok){ toast("That snapshot is damaged and was not restored."); return; }
+    if (!confirm("Restore this snapshot? It replaces what is on screen with " + check.count +
+      " production" + (check.count === 1 ? "" : "s") + ". The current state is snapshotted first.")) return;
+    const result = await replaceAll(snap);
     recovery = null;
     render();
-    toast("Restored " + n + " production" + (n === 1 ? "" : "s"));
+    if (result.ok) toast("Restored " + check.count + " production" + (check.count === 1 ? "" : "s"));
+    else toast(result.blocked ? "Not restored — the ledger could not be reached."
+      : result.failed + " record(s) did not save. Try again.");
     return;
   }
   if (act === "leave-snaps"){ recovery = null; render(); return; }
@@ -2083,15 +2730,34 @@ document.addEventListener("change", async e => {
   const file = e.target.files && e.target.files[0];
   if (!file) return;
   try {
-    const data = JSON.parse(await file.text());
-    if (!readable(data)) throw new Error("shape");
-    if (!confirm("Replace this ledger with the " + data.shows.length + " productions in that backup?")) return;
-    await replaceAll(data);
+    let data = null;
+    try { data = JSON.parse(await file.text()); }
+    catch { toast("That file is not readable JSON."); e.target.value = ""; return; }
+
+    const check = validateLedger(data);
+    if (!check.ok){
+      // Nothing has been touched at this point, and nothing will be.
+      alert("That backup was not restored — it is damaged.\n\n" + check.errors.join("\n") +
+        (check.total > check.errors.length ? "\n\n…and " + (check.total - check.errors.length) + " more." : "") +
+        "\n\nYour current ledger is untouched.");
+      e.target.value = "";
+      return;
+    }
+    if (!confirm("Restore " + check.count + " production" + (check.count === 1 ? "" : "s") +
+        " from that backup? Your current ledger is copied to a snapshot first.")) { e.target.value = ""; return; }
+
+    const result = await replaceAll(data);
     recovery = null;
     render();
-    toast("Restored " + data.shows.length + " productions");
-  } catch {
-    toast("That file is not a ledger backup.");
+    if (result.blocked) toast("Not restored — the ledger could not be reached.");
+    else if (result.ok) toast("Restored " + check.count + " production" + (check.count === 1 ? "" : "s"));
+    else {
+      alert(result.failed + " record" + (result.failed === 1 ? "" : "s") + " could not be saved, so the restore is " +
+        "incomplete. What was here before is in the snapshot taken just now — open " +
+        "Restore a snapshot on the Nominations tab to put it back.");
+    }
+  } catch (err){
+    toast("That file could not be restored.");
   }
   e.target.value = "";
 });
@@ -2108,17 +2774,24 @@ function render(opts){
   if (openShowId && !getShow(openShowId)) openShowId = null;
   document.querySelectorAll(".tab").forEach(t => {
     t.setAttribute("aria-selected", String(t.dataset.tab === tab));
-    t.hidden = !!recovery;
+    t.hidden = !!(recovery || rosterUpdate);
   });
   // Recovery owns the whole window: nothing else in the chrome should invite a click.
   for (const sel of [".strip", "#seasonName", "#saveState"]){
     const el = document.querySelector(sel);
-    if (el) el.hidden = !!recovery;
+    if (el) el.hidden = !!(recovery || rosterUpdate);
   }
-  $("#view").innerHTML = recovery ? renderRecovery()
-    : tab === "season" ? renderSeason() : tab === "ballot" ? renderBallot() : renderReport();
+  $("#view").innerHTML =
+      recovery ? renderRecovery()
+    : rosterUpdate ? renderRosterUpdate()
+    : compareCat ? renderCompare(CAT_BY_ID[compareCat])
+    : tab === "season" ? renderSeason()
+    : tab === "attention" ? renderAttention()
+    : tab === "ballot" ? renderBallot()
+    : renderReport();
   if (!recovery) paintStrip();
   paintSaveState();
+  renderQuick();
   paintStorageWarning();
   if (!opts.keepSheet) renderSheet();
 }
