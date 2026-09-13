@@ -177,10 +177,19 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .u-t{display:block; font-size:17px; font-weight:600; line-height:1.3; transition:color .2s var(--ease)}
 .u-s{display:block; font-size:14px; color:var(--text-3); margin-top:3px}
 
-.hero-flag{margin:14px 0 0}
+.hero-kicker{font-family:var(--display); font-size:14px; font-weight:600; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--accent); margin:0 0 8px}
+.hero-nudges{margin-top:22px; padding-top:16px; border-top:1px solid var(--line);
+  display:flex; flex-direction:column; gap:10px}
+.hero-flag{margin:0}
 .titlelink{font:inherit; background:none; border:0; padding:0; color:var(--text); font-weight:600;
   cursor:pointer; border-bottom:2px solid var(--line-2)}
 .titlelink:hover{border-bottom-color:var(--accent); color:var(--accent)}
+/* A border-bottom draws under the widest line of a wrapped inline box, not the
+   last one — wrong for a headline that can wrap. Underline the text itself. */
+.hero-title .titlelink{border-bottom:0; text-decoration:underline; text-decoration-color:var(--line-2);
+  text-decoration-thickness:3px; text-underline-offset:.1em}
+.hero-title .titlelink:hover{text-decoration-color:var(--accent)}
 .cal-row{display:flex; gap:10px; flex-wrap:wrap; margin-top:18px}
 .cal-row .btn{text-decoration:none; display:inline-flex; align-items:center; justify-content:center}
 .pagefoot{display:flex; gap:14px; flex-wrap:wrap; align-items:center; margin-top:54px; padding-top:26px; border-top:1px solid var(--line)}
@@ -220,8 +229,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .chip{
   display:inline-flex; align-items:center; gap:5px; font-family:var(--ui);
   font-size:13.5px; font-variant-caps:all-small-caps; letter-spacing:.04em; font-weight:600;
-  padding:0 6px; border-radius:0; border:1px solid var(--line-2);
-  color:var(--text-2); white-space:nowrap; line-height:1.55;
+  padding:4px 9px; border-radius:0; border:1px solid var(--line-2);
+  color:var(--text-2); white-space:nowrap; line-height:1.4;
 }
 .chip-consider{color:var(--accent); border:1.5px solid var(--accent); background:transparent}
 .chip-good{color:var(--good); border-color:var(--good); background:var(--good-soft)}
@@ -281,7 +290,6 @@ textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
 /* ---- ledger ---- */
 .toolbar{display:flex; gap:14px 18px; align-items:flex-end; flex-wrap:wrap; margin-bottom:26px; padding-top:8px}
 .toolbar .field{flex:0 1 160px}
-.toolbar .field:has(.seg){flex:0 0 auto}
 .toolbar .spacer{flex:1 1 auto}
 .toolbar .actions{display:flex; gap:9px; flex-wrap:wrap}
 .ledger{border:0; border-top:2px solid var(--text); background:none}
@@ -289,12 +297,23 @@ textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
 .lhead{display:none}
 .lrow{
   display:grid; grid-template-columns:minmax(0,1fr); gap:8px; align-items:start; padding:18px 4px;
+  position:relative;
 }
-.lrow .c-title{grid-column:1/-1}
+.lrow .c-title{grid-column:1/-1; padding-right:78px}
 .lrow .c-awards{grid-column:1/-1}
 .lrow .c-flags{grid-column:1/-1}
 .lhead{background:none; border-bottom:1px solid var(--line-2); padding-block:12px}
 .lrow{border-bottom:1px solid var(--line); text-align:left; width:100%; background:none; border-left:0; border-right:0; border-top:0; cursor:pointer; font:inherit; color:inherit}
+/* One date, always the same shape, always the same corner. */
+.lrow-when{
+  position:absolute; top:18px; right:4px; text-align:right;
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--text-3); white-space:nowrap;
+}
+.lrow-when b{display:block; font-family:var(--ui); font-size:13px; letter-spacing:0; text-transform:none;
+  font-weight:600; color:var(--text-2); margin-top:2px}
+.lrow-when.when-booked{color:var(--accent)}
+.lrow-when.when-booked b{color:var(--accent)}
 .lrow.is-seen{background:var(--seen); box-shadow:inset 3px 0 0 var(--blue)}
 .lrow.is-seen:hover{background:var(--seen-hover)}
 .tick{color:var(--accent); font-weight:600; margin-left:2px; font-size:15px}
@@ -318,17 +337,6 @@ textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
 .award + .award::before{content:"\00b7"; margin:0 .45em; color:var(--line-2); font-weight:400}
 .awards-none{font-family:var(--display); font-size:13px; letter-spacing:.12em; color:var(--text-3)}
 
-/* seen / not seen, the filter that actually gets used */
-.seg{display:inline-flex; flex-wrap:wrap; align-self:flex-start; border:1px solid var(--line-2)}
-.seg-b{
-  font-family:var(--display); font-size:13px; letter-spacing:.12em; text-transform:uppercase;
-  font-weight:400; background:none; border:0; border-left:1px solid var(--line-2);
-  padding:10px 16px; cursor:pointer; color:var(--text-2); white-space:nowrap; line-height:1.3;
-}
-.seg-b:first-child{border-left:0}
-.seg-b:hover{background:var(--surface-2); color:var(--text)}
-.seg-b[aria-pressed="true"]{background:var(--accent); color:#FFFFFF; font-weight:500}
-.seg-n{font-variant-numeric:tabular-nums; opacity:.75; font-size:13px}
 .typename{font-family:var(--display); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-3)}
 .counts{font-family:var(--ui); font-size:13px; color:var(--text-2); font-variant-numeric:tabular-nums}
 .counts small{color:var(--text-3)}
@@ -340,6 +348,8 @@ textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
     gap:26px; align-items:center; padding:20px 4px;
   }
   .lrow .c-title, .lrow .c-awards, .lrow .c-flags{grid-column:auto}
+  .lrow .c-title{padding-right:0}
+  .lrow-when{top:20px}
 }
 
 /* ---- section heads ---- */
@@ -499,7 +509,7 @@ details.passed > summary:hover{color:var(--text)}
 
 /* Touch comes first: every control is thumb-sized until a fine pointer
    and a wide viewport say otherwise. 16px inputs also stop iOS zooming. */
-.btn, .pick, .seg-b, .verdict button{min-height:46px}
+.btn, .pick, .verdict button{min-height:46px}
 .verdict.compact button{width:48px; height:46px; font-size:17px}
 .linkish{display:inline-flex; align-items:center; min-height:46px}
 .hero-eyebrow{min-height:44px}
@@ -509,7 +519,7 @@ details.passed > summary:hover{color:var(--text)}
 .inp, select.inp, textarea.inp{font-size:16px; min-height:46px}
 
 @media (min-width:900px) and (pointer:fine){
-  .btn, .pick, .seg-b, .verdict button{min-height:0}
+  .btn, .pick, .verdict button{min-height:0}
   .verdict.compact button{width:36px; height:34px; font-size:15px}
   .linkish{min-height:0}
   .upnext button{padding:13px 0}
@@ -1471,6 +1481,13 @@ function bookedShort(s){                     // diary column and list chip
 function whenBooked(s){                      // full, for a sentence
   return !s.booked ? "" : bookedDay(s) + (s.bookedTime ? ", " + s.bookedTime : "");
 }
+// One date, one consistent look, on every ledger row: what it's showing
+// depends on state, but never more than one date at a time.
+function ledgerWhen(s){
+  if (s.seen)   return {state:"seen",   label:"Seen",   date:fmtDate(s.seen)};
+  if (s.booked) return {state:"booked", label:"Booked", date:fmtDate(s.booked)};
+  return {state:"opens", label:"Opens", date:s.opened ? fmtDate(s.opened) : "TBA"};
+}
 
 /* ---- Taking it to a calendar ----
    A curtain is a fixed local time, so the event is written as floating local
@@ -2379,22 +2396,25 @@ function renderSchedule(){
       '<div class="hero-lead rise">' +
         '<input class="hero-eyebrow" id="seasonName" data-field="meta:label" aria-label="Season name" spellcheck="false">' +
         (booked.length
-          ? '<h1 class="hero-title">' + esc(bookedDay(booked[0])) + "</h1>" +
-            '<p class="hero-msg">' + (booked[0].bookedTime ? esc(booked[0].bookedTime) + " &mdash; " : "") +
-              '<button class="titlelink" data-act="open-show" data-id="' + booked[0].id + '">' +
-              esc(titleOf(booked[0])) + "</button>" +
-              (booked[0].theatre ? " at " + esc(booked[0].theatre) : "") + "." +
-              "</p>"
+          ? '<p class="hero-kicker">Next &middot; ' + esc(bookedDay(booked[0])) +
+              (booked[0].bookedTime ? ", " + esc(booked[0].bookedTime) : "") + "</p>" +
+            '<h1 class="hero-title"><button class="titlelink" data-act="open-show" data-id="' + booked[0].id + '">' +
+              esc(titleOf(booked[0])) + "</button></h1>" +
+            (booked[0].theatre ? '<p class="hero-msg">At ' + esc(booked[0].theatre) + "</p>" : "")
           : '<h1 class="hero-title">Nothing booked</h1>' +
             '<p class="hero-msg">Open a production from the Season tab and set the night you are going &mdash; it will appear here and can go straight to your calendar.</p>') +
-        (late.length
-          ? '<p class="hero-flag"><button class="linkish" data-act="set-filter" data-v="overdue">' +
-            "Did you see " + esc(titleOf(late[0])) + (late.length > 1 ? " and " + (late.length - 1) + " more" : "") +
-            "?<span class=\"arrow\" aria-hidden=\"true\">&rarr;</span></button></p>" : "") +
-        (towriteUp.length
-          ? '<p class="hero-flag"><button class="linkish" data-act="set-filter" data-v="unmarked">' +
-            towriteUp.length + " seen, not yet written up<span class=\"arrow\" aria-hidden=\"true\">&rarr;</span></button></p>" : "") +
-        '<p class="tally-line" style="margin-top:22px">' + seasonLine() + "</p>" +
+        (late.length || towriteUp.length
+          ? '<div class="hero-nudges">' +
+            (late.length
+              ? '<p class="hero-flag"><button class="linkish" data-act="set-filter" data-v="overdue">' +
+                "Did you see " + esc(titleOf(late[0])) + (late.length > 1 ? " and " + (late.length - 1) + " more" : "") +
+                "?<span class=\"arrow\" aria-hidden=\"true\">&rarr;</span></button></p>" : "") +
+            (towriteUp.length
+              ? '<p class="hero-flag"><button class="linkish" data-act="set-filter" data-v="unmarked">' +
+                towriteUp.length + " seen, not yet written up<span class=\"arrow\" aria-hidden=\"true\">&rarr;</span></button></p>" : "") +
+            "</div>"
+          : "") +
+        '<p class="tally-line" style="margin-top:20px">' + seasonLine() + "</p>" +
       "</div>" +
       // The headline already names the first booking; the aside is only for
       // further bookings, since everything else is already the list below.
@@ -2456,12 +2476,11 @@ function renderSeason(){
   const awardsFor = awardsByShow();
 
   let html = '<div class="toolbar">' +
-    '<div class="field" style="flex:1 1 100%"><label>Show me</label><div class="seg" role="group" aria-label="Filter the season">' +
+    '<div class="field"><label for="fFilter">Show me</label><select class="inp" id="fFilter" data-act="set-filter-sel">' +
       [["all", "All"], ["booked", "Booked"], ["unseen", "Not seen"], ["seen", "Seen"],
-       ["unmarked", "Not written up"], ["considering", "In the running"]]
-      .map(([v, l]) => '<button class="seg-b" data-act="set-filter" data-v="' + v + '" aria-pressed="' +
-        (filter === v) + '">' + l + "</button>").join("") +
-    "</div></div>" +
+       ["unmarked", "Not written up"], ["considering", "Considering"]]
+      .map(([v, l]) => '<option value="' + v + '"' + (filter === v ? " selected" : "") + ">" + l + "</option>").join("") +
+    "</select></div>" +
     '<div class="field"><label for="fSort">Order by</label><select class="inp" id="fSort" data-act="set-sort">' +
       [["opened","Opening night"],["seen","Date seen"],["score","My score"],["title","Title"]]
       .map(([v, l]) => '<option value="' + v + '"' + (sortBy === v ? " selected" : "") + ">" + l + "</option>").join("") +
@@ -2492,14 +2511,14 @@ function renderSeason(){
       const awards = awardsFor.get(s.id) || [];
       const flags = [];
       if (stale(s)) flags.push('<span class="chip chip-warn">Revisit</span>');
-      if (s.booked && !s.seen) flags.push('<span class="chip chip-consider">' + esc(bookedShort(s)) + "</span>");
+      const w = ledgerWhen(s);
 
       html += '<button class="lrow' + (s.seen ? " is-seen" : "") + '" data-act="open-show" data-id="' + s.id + '">' +
+        '<span class="lrow-when when-' + w.state + '">' + esc(w.label) + ' <b>' + esc(w.date) + "</b></span>" +
         '<div class="c-title"><div class="title">' +
           "<em>" + esc(titleOf(s)) + "</em>" +
           (s.seen ? ' <span class="tick" aria-hidden="true">\u2713</span><span class="vh"> (seen)</span>' : "") + "</div>" +
-          '<div class="sub">' + [TYPES[s.type].label, esc(s.author), esc(s.theatre),
-            s.seen ? "seen " + fmtDate(s.seen) : (s.opened ? "opens " + fmtDate(s.opened) : "date TBA")]
+          '<div class="sub">' + [TYPES[s.type].label, esc(s.author), esc(s.theatre)]
             .filter(Boolean).join(" &middot; ") + "</div></div>" +
         '<div class="c-awards">' + (awards.length
             ? '<div class="awards">' + awards.map(c => '<span class="award">' + esc(shortName(c)) + "</span>").join("") + "</div>"
@@ -2962,6 +2981,12 @@ document.addEventListener("input", e => {
 });
 document.addEventListener("change", e => {
   const t = e.target;
+  const act = t.dataset && t.dataset.act;
+  // A <select> never reliably fires "click" for the option the user picked
+  // (keyboard selection never does) — these belong on change, not the click
+  // delegator below.
+  if (act === "set-sort"){ sortBy = t.value; render(); return; }
+  if (act === "set-filter-sel"){ filter = t.value || "all"; tab = "season"; render(); return; }
   if (!t.dataset || !t.dataset.field) return;
   setField(t.dataset.field, t.type === "checkbox" ? t.checked : t.value, t.dataset.type);
   if (!t.dataset.rerender && t.type !== "checkbox") return;
@@ -3206,8 +3231,6 @@ document.addEventListener("click", async e => {
   }
   if (act === "tab"){ tab = el.dataset.tab; render(); window.scrollTo({top:0, behavior:"instant"}); return; }
   if (act === "set-filter"){ filter = el.dataset.v; tab = "season"; render(); window.scrollTo({top:0, behavior:"instant"}); return; }
-  if (act === "set-filter-sel"){ filter = el.value || "all"; render(); return; }
-  if (act === "set-sort"){ sortBy = el.value; render(); return; }
 
   if (act === "new-show"){
     const s = newShow({});
