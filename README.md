@@ -138,13 +138,50 @@ What stands between you and a lost season:
 - **Deletes can be undone.** Removing a performance offers it back for twelve
   seconds, with its verdict and any nomination intact.
 
-Run the tests with `npm test` (35 of them, no dependencies).
+Run the tests with `npm test` (49 of them, no dependencies).
+
+### A central feed, later
+
+The merge path is already the shared one: `buildRosterUpdate()` diffs a set of
+roster entries against the ledger and `applyRosterUpdate()` applies only what is
+ticked, preserving everything the nominator wrote. Today those entries come from
+`seedInto()`, the built-in roster.
+
+A centrally managed feed would replace that one function with a fetch and leave
+the rest alone — the review screen, the preservation rules and the versioning all
+work unchanged. What it additionally needs is a service to host the roster, a
+published-version number to compare against `ROSTER_VERSION`, and a decision
+about whether updates arrive silently for untouched ledgers only (as now) or
+always prompt. None of that is built here.
 
 ### Season to season
 
 *Archive this season* on the Nominations tab packs the whole season away — in the
 browser, and in the published page's store — and starts a new one. Archived
 seasons stay readable and can be restored from *Restore a snapshot*.
+
+### Press releases
+
+Details arrive from press agents as prose, not as a form. **Paste a press
+release** on the Season tab and it is read into a draft: title, classification,
+theatre, opening night, every credited designer, and the cast with roles where
+the release gives them.
+
+Two readers produce the same draft. Where the page can ask Claude, Claude reads
+it — far better on real prose. Otherwise a local parser handles the formulaic
+parts ("directed by", "scenic design by", "X as Role", "opens Thursday, October
+29"). It strips awards from names, so "six-time Tony Award winner Michael Arden"
+is filed as *Michael Arden*, and it takes **opening night**, not the first
+preview.
+
+Nothing is written until you have corrected it, because reading prose is a guess:
+
+- A release matching a production you already have **updates** it rather than
+  duplicating. Blank fields are filled; anything that disagrees with what you
+  have is listed for you to tick, and unticked your version stays.
+- Only facts of record are written. No verdict, no score, no note, and the
+  production is not marked seen. New cast arrives with billing and category
+  **unplaced** — those are judgments, not data.
 
 ### When the roster is recompiled
 

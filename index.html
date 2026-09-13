@@ -1615,6 +1615,198 @@ function seedInto(target){
 }
 
 /* ============================================================
+   Reading a press release
+
+   A nominator's details arrive as prose from press agents, not as a form.
+   Two readers: a local one that always works, and Claude where the page can
+   ask it. Both produce the same draft, which is shown for correction before
+   anything is written — extraction is a guess, and it says so.
+   ============================================================ */
+const MONTHS = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+const DATE_RE = /(?:(?:mon|tues|wednes|thurs|fri|satur|sun)day,?\s+)?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?/i;
+
+/* Credits in a press release are almost always "<role> by <name>". Find every
+   such phrase, then read each name up to wherever the next one begins. */
+const CREDIT_KEYS = [
+  {key:"direction",      re:/\b(?:directed|direction)\s+by\s+/ig},
+  {key:"choreography",   re:/\b(?:choreographed|choreography)\s+by\s+/ig},
+  {key:"book",           re:/\bbook\s+by\s+/ig},
+  {key:"score",          re:/\b(?:music\s+and\s+lyrics|music|lyrics|score)\s+by\s+/ig},
+  {key:"orchestrations", re:/\borchestrations?\s+by\s+/ig},
+  {key:"scenic",         re:/\b(?:scenic|set)\s+designs?\s+by\s+/ig},
+  {key:"costume",        re:/\bcostume\s+designs?\s+by\s+/ig},
+  {key:"lighting",       re:/\blighting\s+designs?\s+by\s+/ig},
+  {key:"sound",          re:/\bsound\s+designs?\s+by\s+/ig},
+];
+/* "directed by Tony Award winner Michael Arden" — the award is not the name. */
+const ACCOLADE = /^(?:(?:two|three|four|five|six|seven|eight|nine|ten|\d+)[- ]time\s+)?(?:tony|olivier|emmy|grammy|oscar|academy|pulitzer|obie|drama desk)[^,]{0,28}?(?:winner|nominee|winning|nominated)\s+/i;
+
+function tidyName(raw){
+  let v = (raw || "").replace(/\s+/g, " ").trim();
+  v = v.replace(/^(?:and|with|by)\s+/i, "");
+  while (ACCOLADE.test(v)) v = v.replace(ACCOLADE, "");
+  v = v.replace(/\([^)]*\)/g, "").trim();
+  // Each pass can expose more trailing junk ("Danny Strong, with" -> "Danny Strong,").
+  for (let i = 0; i < 3; i++){
+    v = v.replace(/[,;:\u2014-]+$/, "").trim();
+    v = v.replace(/\s+(?:and|with)$/i, "").trim();
+  }
+  v = v.replace(/\.$/, "").trim();
+  return v.length > 70 ? "" : v;
+}
+function toISO(match, seasonStart){
+  if (!match) return "";
+  const month = MONTHS.indexOf(match[1].slice(0, 3).toLowerCase());
+  const day = parseInt(match[2], 10);
+  if (month < 0 || !day) return "";
+  // A press release often omits the year; a season runs May to April.
+  const year = match[3] ? parseInt(match[3], 10) : (month >= 4 ? seasonStart : seasonStart + 1);
+  return year + "-" + String(month + 1).padStart(2, "0") + "-" + String(day).padStart(2, "0");
+}
+function seasonStartYear(){
+  const m = /(\d{4})/.exec(meta.label || "");
+  if (m) return parseInt(m[1], 10);
+  const now = new Date();
+  return now.getMonth() >= 4 ? now.getFullYear() : now.getFullYear() - 1;
+}
+
+function parsePressRelease(text){
+  const flat = String(text || "").replace(/\s+/g, " ").trim();
+  const startYear = seasonStartYear();
+  const draft = {title:"", type:"", theatre:"", opened:"", author:"", crafts:{}, cast:[], source:"read here"};
+  if (!flat) return draft;
+
+  // ---- credits ----
+  const hits = [];
+  for (const {key, re} of CREDIT_KEYS){
+    re.lastIndex = 0;
+    let m;
+    while ((m = re.exec(flat))) hits.push({key, from:m.index, to:m.index + m[0].length});
+  }
+  hits.sort((a, b) => a.from - b.from);
+  hits.forEach((hit, i) => {
+    const next = hits[i + 1] ? hits[i + 1].from : flat.length;
+    let chunk = flat.slice(hit.to, next);
+    const stop = chunk.search(/[.;]|\s+(?:will|begins?|opens?|is|are|at the)\s/i);
+    if (stop > 0) chunk = chunk.slice(0, stop);
+    const name = tidyName(chunk);
+    if (name && !draft.crafts[hit.key]) draft.crafts[hit.key] = name;
+  });
+
+  // ---- dates ----
+  const opened = /\b(?:official(?:ly)?\s+)?open(?:s|ing|ed)?\b[^.]{0,70}/i.exec(flat);
+  if (opened) draft.opened = toISO(DATE_RE.exec(opened[0]), startYear);
+  if (!draft.opened){
+    const any = DATE_RE.exec(flat);
+    if (any) draft.opened = toISO(any, startYear);
+  }
+
+  // ---- theatre ----
+  const th = /\bat\s+(?:the\s+)?([A-Z][A-Za-z'.\u2019-]*(?:\s+[A-Z][A-Za-z'.\u2019-]*){0,4}\s+(?:Theatre|Theater))\b/.exec(flat);
+  if (th) draft.theatre = th[1].replace(/\s+/g, " ").trim();
+
+  // ---- classification ----
+  const revival = /\brevival\b/i.test(flat);
+  const musical = /\bmusical\b/i.test(flat);
+  draft.type = revival ? (musical ? "revival-musical" : "revival-play")
+             : (musical ? "new-musical" : "new-play");
+
+  // ---- title ----
+  // Read this from the original lines, not the flattened text: "FOR IMMEDIATE RELEASE"
+  // and the title sit on separate lines and run together once the newlines are gone.
+  const BOILER = /^(?:for\s+immediate\s+release|press\s+release|media\s+(?:contact|alert)|contact|#+|\*+|-+)\b/i;
+  const lines = String(text || "").split(/\r?\n/).map(l => l.trim())
+    .filter(l => l && !BOILER.test(l));
+  const body = lines.join(" ");
+
+  const quoted = /[\u201c"\u2018']([^\u201d"\u2019']{2,70})[\u201d"\u2019']/.exec(body);
+  let caps = "";
+  for (const line of lines.slice(0, 6)){
+    const m = /\b([A-Z][A-Z0-9'\u2019:!?-]*(?:\s+[A-Z&][A-Z0-9'\u2019:!?-]*){1,8})\b/.exec(line);
+    if (m && m[1].replace(/[^A-Z]/g, "").length > 4){ caps = m[1]; break; }
+  }
+  const lead = /^(.{2,70}?)\s+(?:will|begins?|opens?|is\s+(?:set|coming)|returns?|arrives?|transfers?)\b/i.exec(body);
+  draft.title = (quoted && quoted[1].trim()) || (caps ? caps : "") ||
+    (lead && lead[1].trim()) || "";
+  // Releases shout their titles; the ledger does not.
+  if (draft.title && draft.title === draft.title.toUpperCase()) draft.title = titleCase(draft.title);
+
+  // ---- author ----
+  const by = /\b(?:written\s+by|a\s+new\s+play\s+by|play\s+by|adapted\s+by)\s+([^.;,]{2,60})/i.exec(flat);
+  if (by) draft.author = tidyName(by[1]);
+  if (!draft.author && draft.crafts.book) draft.author = draft.crafts.book;
+
+  // ---- cast ----
+  const seen = new Set();
+  // "Krysta Rodriguez as Lt. Commander JoAnne Galloway and Stephanie Berry as Judge Randolph."
+  // Match only up to "as", then read the role forward by hand — a lookahead here would
+  // swallow the next performer. A role ends at a comma, an "and", or a sentence-ending
+  // period, which is one preceded by a word of four letters or more ("Lt." is not one).
+  const asRe = /([A-Z][A-Za-z.'\u2019-]+(?:\s+[A-Z][A-Za-z.'\u2019-]+){0,3})\s+as\s+/g;
+  let a;
+  while ((a = asRe.exec(flat))){
+    const name = tidyName(a[1]);
+    const rest = flat.slice(asRe.lastIndex, asRe.lastIndex + 90);
+    let end = rest.length;
+    for (const re of [/,/, /;/, /\s+and\s+/i]){
+      const m = re.exec(rest);
+      if (m && m.index < end) end = m.index;
+    }
+    const sentence = /[A-Za-z]{4}\.(?=\s|$)/.exec(rest);
+    if (sentence && sentence.index + sentence[0].length - 1 < end) end = sentence.index + sentence[0].length - 1;
+    const role = rest.slice(0, end).replace(/\s+/g, " ").replace(/[.,;]+$/, "").trim();
+    if (!name || seen.has(name.toLowerCase())) continue;
+    seen.add(name.toLowerCase());
+    draft.cast.push({name, role:(/^[A-Z]/.test(role) && role.length <= 50) ? role : ""});
+  }
+  const starring = /\b(?:starring|stars|will\s+star|features?)\s+([^.]{3,240})/i.exec(flat);
+  if (starring){
+    for (const raw of starring[1].split(/,|\band\b/)){
+      // "with Krysta Rodriguez as Lt" — keep the name, drop the half-read role.
+      const name = tidyName(raw.split(/\s+as\s+/i)[0]);
+      if (!name || seen.has(name.toLowerCase())) continue;
+      if (!/^[A-Z]/.test(name) || name.split(" ").length > 4) continue;
+      seen.add(name.toLowerCase());
+      draft.cast.push({name, role:""});
+    }
+  }
+  return draft;
+}
+function titleCase(v){
+  return v.toLowerCase().replace(/\b([a-z])/g, (m, c) => c.toUpperCase())
+    .replace(/\b(A|An|The|Of|And|In|On|To|For|Or)\b/g, (m, w, i) => i === 0 ? w : w.toLowerCase());
+}
+
+/* Claude reads the prose far better than the rules above. Same draft shape. */
+async function readWithClaude(text){
+  let sample = null;
+  try { sample = (window.claude && claude.use) ? await claude.use("sample") : null; }
+  catch { sample = null; }
+  if (!sample) return null;
+  const prompt =
+    "You are reading a Broadway press release for a Tony nominator's ledger. " +
+    "Return ONLY JSON matching exactly this shape, using empty strings where the release does not say:\n" +
+    '{"title":"","type":"new-play|new-musical|revival-play|revival-musical","theatre":"","opened":"YYYY-MM-DD",' +
+    '"author":"","crafts":{"direction":"","book":"","score":"","orchestrations":"","choreography":"",' +
+    '"scenic":"","costume":"","lighting":"","sound":""},"cast":[{"name":"","role":""}]}\n' +
+    "Rules: opened is OPENING NIGHT, not the first preview. Strip awards and honorifics from names " +
+    "(\"Tony winner Michael Arden\" is \"Michael Arden\"). type is a revival only if the release says so. " +
+    "Include every credited designer and every named performer with the role if given. Invent nothing.\n\n" +
+    "PRESS RELEASE:\n" + text;
+  const out = await sample.json(prompt, {modelTier:"default"});
+  if (!out || typeof out !== "object") return null;
+  return {
+    title:String(out.title || ""), type:TYPES[out.type] ? out.type : "",
+    theatre:String(out.theatre || ""), opened:String(out.opened || ""),
+    author:String(out.author || ""),
+    crafts:(out.crafts && typeof out.crafts === "object") ? out.crafts : {},
+    cast:Array.isArray(out.cast) ? out.cast.filter(c => c && c.name).map(c => ({
+      name:String(c.name), role:String(c.role || "")})) : [],
+    source:"read by Claude",
+  };
+}
+
+/* ============================================================
    Rendering helpers
    ============================================================ */
 const $ = sel => document.querySelector(sel);
@@ -1754,6 +1946,141 @@ function visibleShows(){
    Quick log, needs-you, compare, roster review
    ============================================================ */
 let quickFor = null, compareCat = null, quickPicking = false, quickQuery = "";
+let intake = null;   // {stage, text, draft, matchId, reading}
+
+const CRAFT_LABEL = Object.fromEntries(CRAFTS.map(c => [c.key, c.label]));
+
+function startIntake(){ intake = {stage:"paste", text:"", draft:null, matchId:"", reading:false}; }
+/* Which production this release is about, if the ledger already has it. */
+function intakeMatch(draft){
+  if (!draft.title.trim()) return null;
+  const want = draft.title.trim().toLowerCase();
+  return shows.find(s => s.title.trim().toLowerCase() === want) || null;
+}
+
+function renderIntake(){
+  if (intake.stage === "paste"){
+    return '<div class="recovery"><span class="eyebrow">Press release</span>' +
+      "<h2>Paste a release</h2>" +
+      "<p>Paste the whole thing \u2014 headline, credits, casting, dates. It is read into a draft you " +
+      "correct before anything is written, because reading prose is a guess and sometimes a wrong one.</p>" +
+      '<div class="quick-field">' +
+        '<textarea class="inp" id="pasteBox" rows="12" data-act="intake-text" ' +
+        'placeholder="FOR IMMEDIATE RELEASE\u2026">' + esc(intake.text) + "</textarea></div>" +
+      '<div class="quick-actions" style="justify-content:flex-start">' +
+        '<button class="btn btn-primary" data-act="intake-read">' +
+          (intake.reading ? "Reading\u2026" : "Read it") + "</button>" +
+        '<button class="btn" data-act="intake-cancel">Cancel</button></div></div>';
+  }
+
+  const d = intake.draft;
+  const match = intake.matchId ? getShow(intake.matchId) : null;
+  const field = (key, label, value, type) =>
+    '<div class="field"><label for="ik-' + key + '">' + label + "</label>" +
+    (type === "select"
+      ? '<select class="inp" id="ik-' + key + '" data-act="intake-field" data-k="' + key + '">' +
+        Object.entries(TYPES).map(([v, t]) => '<option value="' + v + '"' + (value === v ? " selected" : "") + ">" + t.label + "</option>").join("") +
+        "</select>"
+      : '<input class="inp" id="ik-' + key + '"' + (type === "date" ? ' type="date"' : "") +
+        ' value="' + esc(value) + '" data-act="intake-field" data-k="' + key + '">') + "</div>";
+
+  return '<div class="recovery"><span class="eyebrow">Press release &middot; ' + esc(d.source) + "</span>" +
+    "<h2>" + (match ? "Update " + esc(titleOf(match)) : "Add this production") + "</h2>" +
+    "<p>" + (match
+      ? "This matches a production already in the ledger. Only blank fields are filled in; anything that " +
+        "disagrees with what you have is listed below for you to decide. Nothing you wrote is touched."
+      : "Correct anything that came out wrong, then add it. Everything here is a matter of record \u2014 " +
+        "no verdicts, scores or notes are set.") + "</p>" +
+
+    '<div class="choice" style="margin-top:18px">' +
+      '<div class="grid2">' +
+        field("title", "Production", d.title) +
+        field("type", "Counts as", d.type || "new-play", "select") +
+        field("author", "Written by", d.author) +
+        field("theatre", "Theatre", d.theatre) +
+        field("opened", "Opening night", d.opened, "date") +
+      "</div></div>" +
+
+    '<div class="choice" style="margin-top:12px"><h3>Credits read</h3>' +
+      (Object.keys(d.crafts).filter(k => CRAFT_LABEL[k] && d.crafts[k]).length
+        ? '<div class="grid2">' + CRAFTS.filter(c => d.crafts[c.key]).map(c =>
+            field("craft:" + c.key, c.label, d.crafts[c.key])).join("") + "</div>"
+        : '<p class="hint">No credits found. You can add them on the assessment sheet.</p>') +
+    "</div>" +
+
+    '<div class="choice" style="margin-top:12px"><h3>Cast read &middot; ' + d.cast.length + "</h3>" +
+      (d.cast.length
+        ? '<div class="quick-cast" style="max-height:250px">' + d.cast.map((c, i) =>
+            '<label><input type="checkbox" data-act="intake-cast" data-i="' + i + '"' +
+            (c.drop ? "" : " checked") + '><span>' + esc(c.name) +
+            (c.role ? ' <span class="hint">' + esc(c.role) + "</span>" : "") + "</span></label>").join("") + "</div>" +
+          '<p class="hint" style="margin-top:8px">Billing and category are left unplaced \u2014 those are yours to judge.</p>'
+        : '<p class="hint">No cast found.</p>') +
+    "</div>" +
+
+    (match ? intakeConflicts(match, d) : "") +
+
+    '<div class="quick-actions" style="justify-content:flex-start; margin-top:20px">' +
+      '<button class="btn btn-primary" data-act="intake-apply">' +
+        (match ? "Update the production" : "Add to the ledger") + "</button>" +
+      '<button class="btn" data-act="intake-back">Back to the text</button>' +
+      '<button class="btn btn-ghost" data-act="intake-cancel">Discard</button></div></div>';
+}
+
+/* Where the release disagrees with what is already recorded, the nominator picks. */
+function intakeConflicts(show, d){
+  const rows = [];
+  for (const [key, label] of [["author","Written by"],["theatre","Theatre"],["opened","Opening night"]]){
+    if (d[key] && show[key] && d[key] !== show[key]) rows.push({key, label, mine:show[key], theirs:d[key]});
+  }
+  for (const c of CRAFTS){
+    const theirs = d.crafts[c.key], mine = show.crafts[c.key] && show.crafts[c.key].credit;
+    if (theirs && mine && theirs !== mine) rows.push({key:"craft:" + c.key, label:c.label, mine, theirs});
+  }
+  if (!rows.length) return "";
+  return '<div class="choice danger" style="margin-top:12px"><h3>Disagrees with the ledger &middot; ' + rows.length + "</h3>" +
+    "<p>Unticked, your version stays.</p>" +
+    rows.map(r => '<label><input type="checkbox" data-act="intake-overwrite" data-k="' + esc(r.key) + '">' +
+      "<span>" + esc(r.label) + ": <span class=\"was\">" + esc(r.mine) + "</span> <strong>" + esc(r.theirs) +
+      "</strong></span></label>").join("") + "</div>";
+}
+
+/* Writes only facts of record; never a verdict, a score or a note. */
+function applyIntake(){
+  const d = intake.draft;
+  const keep = d.cast.filter(c => !c.drop);
+  const over = intake.overwrite || new Set();
+  let show = intake.matchId ? getShow(intake.matchId) : null;
+  const created = !show;
+  if (!show){
+    show = newShow({title:d.title.trim() || "Untitled production", type:d.type || "new-play"});
+    shows.push(show);
+  } else {
+    if (over.has("title")) show.title = d.title.trim();
+    if (d.type && over.has("type")) show.type = d.type;
+  }
+  for (const key of ["author", "theatre", "opened"]){
+    if (!d[key]) continue;
+    if (!show[key] || over.has(key)) show[key] = d[key];
+  }
+  for (const c of CRAFTS){
+    const val = d.crafts[c.key];
+    if (!val) continue;
+    const slot = show.crafts[c.key];
+    if (!slot.credit || over.has("craft:" + c.key)) slot.credit = val;
+  }
+  for (const c of keep){
+    const already = show.performances.some(p => p.name.trim().toLowerCase() === c.name.trim().toLowerCase());
+    if (already) continue;
+    show.performances.push({id:uid(), name:c.name, role:c.role || "",
+      billing:"unset", division:"unset", score:0, note:"", status:"", disputed:false});
+  }
+  if (db) flushSave("show", show.id); else writeLocal();
+  meta.eligibleTotal = Math.max(+meta.eligibleTotal || 0, shows.filter(x => x.eligible).length);
+  queueSave("meta");
+  intake = null;
+  return {created, id:show.id, title:titleOf(show), cast:keep.length};
+}
 
 function renderQuick(){
   const wrap = $("#quickWrap");
@@ -2009,6 +2336,7 @@ function renderSeason(){
     '<div class="spacer"></div>' +
     '<div class="actions">' +
       '<button class="btn btn-primary" data-act="quick-open">I just saw a show</button>' +
+      '<button class="btn" data-act="intake-open">Paste a press release</button>' +
       '<button class="btn" data-act="new-show">+ Add a production</button>' +
     "</div>" +
   "</div>";
@@ -2489,6 +2817,7 @@ document.addEventListener("input", e => {
     }, 200);
     return;
   }
+  if (t.dataset && t.dataset.act === "intake-text"){ intake.text = t.value; return; }
   if (t.dataset && t.dataset.act === "quick-search"){
     quickQuery = t.value.trim();
     clearTimeout(queryTimer);
@@ -2554,6 +2883,58 @@ document.addEventListener("click", async e => {
   const act = el.dataset.act;
 
   if (act === "undo"){ takeUndo(); return; }
+
+  /* ---- press release intake ---- */
+  if (act === "intake-open"){ startIntake(); render(); window.scrollTo({top:0, behavior:"instant"}); return; }
+  if (act === "intake-cancel"){ intake = null; render(); return; }
+  if (act === "intake-back"){ intake.stage = "paste"; intake.draft = null; render(); return; }
+  if (act === "intake-read"){
+    const box = document.querySelector("#pasteBox");
+    intake.text = box ? box.value : intake.text;
+    if (!intake.text.trim()){ toast("Paste the release first."); return; }
+    intake.reading = true; render();
+    let draft = null;
+    try { draft = await readWithClaude(intake.text); }
+    catch (e){
+      // Claude is a bonus, never a dependency: fall through to the local reader.
+      if (e && e.code === "rate_limited") toast("Claude is busy — read here instead.");
+    }
+    if (!draft) draft = parsePressRelease(intake.text);
+    intake.draft = draft;
+    intake.matchId = (intakeMatch(draft) || {}).id || "";
+    intake.overwrite = new Set();
+    intake.reading = false;
+    intake.stage = "check";
+    render();
+    return;
+  }
+  if (act === "intake-field"){
+    const k = el.dataset.k;
+    if (k.indexOf("craft:") === 0) intake.draft.crafts[k.slice(6)] = el.value;
+    else intake.draft[k] = el.value;
+    if (k === "title"){
+      intake.matchId = (intakeMatch(intake.draft) || {}).id || "";
+      clearTimeout(el._m);
+      el._m = setTimeout(() => { const at = el.selectionStart; render();
+        const again = document.querySelector("#ik-title");
+        if (again){ again.focus(); try { again.setSelectionRange(at, at); } catch {} } }, 400);
+    }
+    return;
+  }
+  if (act === "intake-cast"){ intake.draft.cast[+el.dataset.i].drop = !el.checked; return; }
+  if (act === "intake-overwrite"){
+    intake.overwrite = intake.overwrite || new Set();
+    if (el.checked) intake.overwrite.add(el.dataset.k); else intake.overwrite.delete(el.dataset.k);
+    return;
+  }
+  if (act === "intake-apply"){
+    if (!intake.draft.title.trim()){ toast("Give it a title first."); return; }
+    const done = applyIntake();
+    render();
+    toast((done.created ? "Added " : "Updated ") + done.title +
+      (done.cast ? " with " + done.cast + " performance" + (done.cast === 1 ? "" : "s") : ""));
+    return;
+  }
 
   if (act === "clear-query"){ query = ""; render(); return; }
 
@@ -2837,15 +3218,16 @@ function render(opts){
   if (openShowId && !getShow(openShowId)) openShowId = null;
   document.querySelectorAll(".tab").forEach(t => {
     t.setAttribute("aria-selected", String(t.dataset.tab === tab));
-    t.hidden = !!(recovery || rosterUpdate);
+    t.hidden = !!(recovery || rosterUpdate || intake);
   });
   // Recovery owns the whole window: nothing else in the chrome should invite a click.
   for (const sel of [".strip", "#seasonName", "#saveState"]){
     const el = document.querySelector(sel);
-    if (el) el.hidden = !!(recovery || rosterUpdate);
+    if (el) el.hidden = !!(recovery || rosterUpdate || intake);
   }
   $("#view").innerHTML =
       recovery ? renderRecovery()
+    : intake ? renderIntake()
     : rosterUpdate ? renderRosterUpdate()
     : compareCat ? renderCompare(CAT_BY_ID[compareCat])
     : tab === "season" ? renderSeason()
