@@ -702,7 +702,7 @@ function blankCrafts(){
 }
 function newShow(patch){
   const s = {
-    id:uid(), title:"", type:"new-play", theatre:"", opened:"", seen:"", booked:"", bookedTime:"",
+    id:uid(), title:"", type:"new-play", theatre:"", opened:"", closed:"", seen:"", booked:"", bookedTime:"",
     author:"", rosterId:"",
     overall:0, verdict:"", memory:"", status:"",
     bookEligible:true, scoreEligible:true,
@@ -718,6 +718,7 @@ function normalizeShow(s){
   }
   s.author = s.author || "";
   s.rosterId = s.rosterId || "";
+  s.closed = s.closed || "";
   s.booked = s.booked || ""; s.bookedTime = s.bookedTime || "";
   s.performances = (s.performances||[]).map(p => ({
     id:p.id||uid(), name:p.name||"", role:p.role||"",
@@ -1486,7 +1487,45 @@ function whenBooked(s){                      // full, for a sentence
 function ledgerWhen(s){
   if (s.seen)   return {state:"seen",   label:"Seen",   date:fmtDate(s.seen)};
   if (s.booked) return {state:"booked", label:"Booked", date:fmtDate(s.booked)};
+  const today = new Date().toISOString().slice(0, 10);
+  if (s.closed && s.closed < today) return {state:"opens", label:"Closed", date:fmtDate(s.closed)};
+  if (s.opened && s.opened <= today) return {state:"opens", label:"Opened", date:fmtDate(s.opened)};
   return {state:"opens", label:"Opens", date:s.opened ? fmtDate(s.opened) : "TBA"};
+}
+// The production's real-world run, independent of whether you've seen it.
+function runStatus(s){
+  const today = new Date().toISOString().slice(0, 10);
+  if (s.closed && s.closed < today) return "closed";
+  if (s.opened && s.opened <= today) return "running";
+  return "soon";
+}
+function ledgerRowHTML(s, awardsFor){
+  const awards = awardsFor.get(s.id) || [];
+  const flags = [];
+  if (stale(s)) flags.push('<span class="chip chip-warn">Revisit</span>');
+  const w = ledgerWhen(s);
+  return '<button class="lrow' + (s.seen ? " is-seen" : "") + '" data-act="open-show" data-id="' + s.id + '">' +
+    '<span class="lrow-when when-' + w.state + '">' + esc(w.label) + ' <b>' + esc(w.date) + "</b></span>" +
+    '<div class="c-title"><div class="title">' +
+      "<em>" + esc(titleOf(s)) + "</em>" +
+      (s.seen ? ' <span class="tick" aria-hidden="true">✓</span><span class="vh"> (seen)</span>' : "") + "</div>" +
+      '<div class="sub">' + [TYPES[s.type].label, esc(s.author), esc(s.theatre)]
+        .filter(Boolean).join(" &middot; ") + "</div></div>" +
+    '<div class="c-awards">' + (awards.length
+        ? '<div class="awards">' + awards.map(c => '<span class="award">' + esc(shortName(c)) + "</span>").join("") + "</div>"
+        : "") + "</div>" +
+    '<div class="c-flags flags">' + flags.join("") + "</div>" +
+  "</button>";
+}
+function ledgerGroupHTML(label, list, awardsFor, emptyText){
+  return '<div class="sec"><div class="sec-head"><h2>' + esc(label) + '</h2>' +
+      '<span class="eyebrow">' + list.length + " production" + (list.length === 1 ? "" : "s") + "</span></div>" +
+    '<div class="ledger"><div class="lhead">' +
+      "<div>Production</div><div>Under consideration for</div><div></div></div>" +
+    (list.length
+      ? list.map(s => ledgerRowHTML(s, awardsFor)).join("")
+      : '<p class="hint" style="padding:16px 0">' + esc(emptyText) + "</p>") +
+    "</div></div>";
 }
 
 /* ---- Taking it to a calendar ----
@@ -2384,12 +2423,13 @@ function renderRecovery(){
 function renderSchedule(){
   const revisits = shows.filter(stale);
   const today = new Date().toISOString().slice(0, 10);
-  // Already open and still unseen is a different kind of item than something
-  // that hasn't opened yet — one you could see tonight, the other you're
-  // waiting on. Two sections, not one list blurring the two together.
-  const running = shows.filter(s => !s.seen && s.opened && s.opened <= today)
-    .sort((a, b) => a.opened.localeCompare(b.opened));
-  const opening = shows.filter(s => !s.seen && s.opened && s.opened > today)
+  // The schedule is for near-term planning: what you've already booked,
+  // plus what's worth booking in the next couple of months. The rest of
+  // the season — everything currently running, everything further out —
+  // lives on the Season tab, grouped by its own run status.
+  const WINDOW_DAYS = 60;
+  const windowEnd = new Date(Date.now() + WINDOW_DAYS * MS_DAY).toISOString().slice(0, 10);
+  const soon = shows.filter(s => !s.seen && !s.booked && s.opened && s.opened >= today && s.opened <= windowEnd)
     .sort((a, b) => a.opened.localeCompare(b.opened));
 
   const booked = diary();
@@ -2458,27 +2498,18 @@ function renderSchedule(){
       "</p></div>";
   }
 
-  const scheduleRow = s =>
-    '<button data-act="open-show" data-id="' + s.id + '">' +
-      '<span class="u-d">' + esc(s.booked ? bookedShort(s) : fmtDate(s.opened)) + "</span>" +
-      '<span><span class="u-t">' + esc(titleOf(s)) + "</span>" +
-      '<span class="u-s">' + [esc(s.theatre), s.booked ? "Booked" : TYPES[s.type].label].filter(Boolean).join(" &middot; ") + "</span></span>" +
-    "</button>";
-
-  html += '<div class="sec"><div class="sec-head"><h2>Now running</h2>' +
-    '<span class="eyebrow">' + running.length + " not yet seen</span></div>";
-  html += running.length
-    ? '<div class="upnext">' + running.map(scheduleRow).join("") + "</div>"
-    : '<p class="hint" style="padding:10px 0">Nothing currently open that you have not seen.</p>';
-  html += "</div>";
-
-  html += '<div class="sec"><div class="sec-head"><h2>Opening next</h2>' +
-    '<span class="eyebrow">' + opening.length + " scheduled</span></div>";
-  if (!opening.length){
-    html += '<div class="empty"><h3>Nothing else on the calendar</h3>' +
-      '<p>Open a production and set a date &mdash; it will appear here in order.</p></div>';
+  html += '<div class="sec"><div class="sec-head"><h2>Worth booking soon</h2>' +
+    '<span class="eyebrow">opening in the next two months</span></div>';
+  if (!soon.length){
+    html += '<div class="empty"><h3>Nothing else opening soon</h3>' +
+      '<p>Nothing unbooked opens in the next two months. Check the Season tab for the rest of the year.</p></div>';
   } else {
-    html += '<div class="upnext">' + opening.map(scheduleRow).join("") + "</div>";
+    html += '<div class="upnext">' + soon.map(s =>
+      '<button data-act="open-show" data-id="' + s.id + '">' +
+        '<span class="u-d">' + esc(fmtDate(s.opened)) + "</span>" +
+        '<span><span class="u-t">' + esc(titleOf(s)) + "</span>" +
+        '<span class="u-s">' + [esc(s.theatre), TYPES[s.type].label].filter(Boolean).join(" &middot; ") + "</span></span>" +
+      "</button>").join("") + "</div>";
   }
   html += "</div>";
   return html;
@@ -2515,33 +2546,19 @@ function renderSeason(){
       " opened this season that you have not logged yet. Log them as they are announced so nothing is missed in April.</p>";
   }
 
-  html += '<div class="ledger"><div class="lhead">' +
-    "<div>Production</div><div>Under consideration for</div><div></div></div>";
-
   if (!list.length){
     html += '<div class="empty"><h3>Nothing here yet</h3><p>Log a production the night you see it — the note you write in the lobby is the one you will trust in April.</p></div>';
   } else {
-    for (const s of list){
-      const awards = awardsFor.get(s.id) || [];
-      const flags = [];
-      if (stale(s)) flags.push('<span class="chip chip-warn">Revisit</span>');
-      const w = ledgerWhen(s);
-
-      html += '<button class="lrow' + (s.seen ? " is-seen" : "") + '" data-act="open-show" data-id="' + s.id + '">' +
-        '<span class="lrow-when when-' + w.state + '">' + esc(w.label) + ' <b>' + esc(w.date) + "</b></span>" +
-        '<div class="c-title"><div class="title">' +
-          "<em>" + esc(titleOf(s)) + "</em>" +
-          (s.seen ? ' <span class="tick" aria-hidden="true">\u2713</span><span class="vh"> (seen)</span>' : "") + "</div>" +
-          '<div class="sub">' + [TYPES[s.type].label, esc(s.author), esc(s.theatre)]
-            .filter(Boolean).join(" &middot; ") + "</div></div>" +
-        '<div class="c-awards">' + (awards.length
-            ? '<div class="awards">' + awards.map(c => '<span class="award">' + esc(shortName(c)) + "</span>").join("") + "</div>"
-            : "") + "</div>" +
-        '<div class="c-flags flags">' + flags.join("") + "</div>" +
-      "</button>";
-    }
+    // A production's real-world run — open, upcoming, or closed — is a
+    // different question from whether you've seen it, so it groups the
+    // list on its own, independent of the "Show me" filter above.
+    html += ledgerGroupHTML("Currently running", list.filter(s => runStatus(s) === "running"), awardsFor,
+      "Nothing currently running matches.");
+    html += ledgerGroupHTML("Coming soon", list.filter(s => runStatus(s) === "soon"), awardsFor,
+      "Nothing announced yet matches.");
+    html += ledgerGroupHTML("Closed", list.filter(s => runStatus(s) === "closed"), awardsFor,
+      "Nothing has closed yet.");
   }
-  html += "</div>";
 
   // Housekeeping belongs after the season, not in front of it.
   html += '<div class="pagefoot">' +
@@ -2620,6 +2637,7 @@ function renderSheet(){
       '<div class="field"><label for="au-' + s.id + '">Written by</label><input class="inp" id="au-' + s.id + '" value="' + esc(s.author) + '" data-field="' + f("author") + '" placeholder="Author, or book and score credits"></div>' +
       '<div class="field"><label for="th-' + s.id + '">Theatre</label><input class="inp" id="th-' + s.id + '" value="' + esc(s.theatre) + '" data-field="' + f("theatre") + '"></div>' +
       '<div class="field"><label for="op-' + s.id + '">Opening night</label><input class="inp mono" id="op-' + s.id + '" type="date" value="' + esc(s.opened) + '" data-field="' + f("opened") + '"></div>' +
+      '<div class="field"><label for="cl-' + s.id + '">Closing night</label><input class="inp mono" id="cl-' + s.id + '" type="date" value="' + esc(s.closed) + '" data-field="' + f("closed") + '"></div>' +
     "</div>" +
 
     '<div class="block"><h3>' + (s.seen ? "When you saw it" : "When you are going") + "</h3>" +
