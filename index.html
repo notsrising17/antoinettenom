@@ -1638,8 +1638,17 @@ function seedInto(target){
   const c = credit => ({credit, score:0, note:""});
 
   target.push(
-    S("Paranormal Activity", "new-play", "August Wilson Theatre", "2026-09-15", "Levi Holloway",
-      {direction:c("Felix Barrett")}, []),
+    S("Paranormal Activity", "new-play", "August Wilson Theatre", "2026-08-25", "Levi Holloway",
+      {direction:c("Felix Barrett"), scenic:c("Fly Davis"), costume:c("Fly Davis"),
+       lighting:c("Anna Watson"), sound:c("Gareth Fry")},
+      [["Cher Álvarez", "", "leading", "actress"],
+       ["Travis A. Knight", "", "leading", "actor"],
+       ["Shannon Cochran", "", "featured"],
+       ["Eva Kaminsky", "", "featured", "actress"],
+       ["Bobby J. Howlett", "", "featured"],
+       ["Caron Buinis", "", "featured", "actress"],
+       ["Caroline Hendricks", "", "featured", "actress"],
+       ["Michael Holding", "", "featured", "actor"]]),
 
     S("School Girls; Or, The African Mean Girls Play", "new-play", "Samuel J. Friedman Theatre", "2026-09-28", "Jocelyn Bioh",
       {direction:c("Whitney White")},
