@@ -21,41 +21,64 @@ to score what you saw. One button empties it if you would rather start clean.
 
 ### Season
 
-The ledger. One row per production: when you saw it, how long ago that was,
-your overall score, how much of it you have scored, and what still needs
+The ledger. One row per production: when you saw it, how long ago that was, your
+verdict on it, how many of its elements you have marked, and what still needs
 attention. The coverage strip across the top is the state of the season at a
-glance — logged, seen, still to see, unscored, marked for a second look, slates
-set, and how many categories have a thin field.
+glance — seen, still to see, unmarked, how many elements you are considering,
+how many performances still need placing, marked for a second look, slates set,
+and how many categories have a thin field.
 
-Filters cut the ledger down to what needs work: not yet seen, seen but not
-scored, contenders at 8 and up, worth a second look, recused.
+Filters cut the ledger down to what needs work: not yet seen, seen but nothing
+marked, something marked consider, worth a second look, recused.
 
 ### The assessment sheet
 
 Click any production. You get:
 
-- **The night itself** — an overall score, a one-line verdict, and *what will
-  still be in your head in April*. That last field is the one that matters in
-  the meeting.
-- **Elements** — the credited artist, a score, and a note for each of direction,
+- **The night itself** — your verdict on the production, a one-line summary, and
+  *what will still be in your head in April*. That last field is the one that
+  matters in the meeting.
+- **Elements** — the credited artist, a verdict, and a note for each of direction,
   book, score, orchestrations, choreography, and the four designs. Only the
   elements that production can actually be nominated for appear.
 - **Performances** — performer, role, leading or featured, actor or actress, a
-  score, and the moment. Billing decides leading versus featured and billing is
+  verdict, and the moment. Billing decides leading versus featured and billing is
   sometimes wrong, so there is a flag for the ones you intend to argue about.
 - **Eligibility and conflicts** — mark a production ineligible, mark yourself
   recused (which removes it from every category on your ballot, with the reason
   recorded), or flag it for a second viewing.
 
-Scores are set on a ten-segment fader — click it, or focus it and use the arrow
-keys, `0`–`9`, `Home`, or `End`.
+### Verdicts, and why scoring is optional
+
+Every element — the production itself, each credit, each performance — carries
+one of three verdicts: **consider**, **undecided**, or **pass**. Everything
+starts undecided, and marking something *consider* is what puts it on that
+category's list. That is the whole mechanism; you never have to give a number to
+anything.
+
+Scoring is there when you want it. Each element also has an optional ten-segment
+fader — click it, or focus it and use the arrow keys, `0`–`9`, `Home`, or `End`.
+Where you gave a score it orders the list within a verdict group, so the things
+you thought hardest about sort to the top. Where you did not, the candidate shows
+a dot and sorts alphabetically. Nothing requires a score and nothing is hidden
+for want of one.
 
 ### Ballot
 
-All 26 competitive categories, grouped the way the committee works through
-them. Every production you have seen and scored appears in the categories it is
-eligible for, ranked by your own score, carrying the note you wrote at the time.
-Nominate, hold, or pass each candidate; set the slate size per category.
+All 26 competitive categories, grouped the way the committee works through them.
+Every production you have seen appears in the categories it is eligible for,
+carrying the note you wrote at the time, split into three lists:
+
+- **Considering** — what you marked consider, building as the season goes. This
+  is the list you work down.
+- **Undecided** — everything eligible you have not ruled on.
+- **Passed** — collapsed out of the way, one click from coming back.
+
+You can change a verdict from the ballot as readily as from the assessment sheet,
+and a candidate moves between lists as you do. Once something is in the
+considering list it gets a **Nominate** button, which puts it on the slate; set
+the slate size per category. Changing a verdict away from consider clears any
+nomination with it — you cannot nominate what you have passed on.
 
 The eligibility rules are enforced rather than left to memory:
 
@@ -67,7 +90,9 @@ The eligibility rules are enforced rather than left to memory:
 - Recused productions appear nowhere.
 
 A category with fewer than four eligible candidates is flagged as a thin field,
-because that is a problem you want to know about in January, not in April.
+because that is a problem you want to know about in January, not in April. Until
+half the season has been seen those flags stay quiet — a thin field in October is
+just an early one.
 
 ### Nominations
 
