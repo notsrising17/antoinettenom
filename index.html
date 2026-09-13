@@ -146,6 +146,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 
 /* ---- hero: asymmetric, one message, one action ---- */
 .hero{padding-block:clamp(34px,6vw,72px) clamp(28px,4vw,48px)}
+.hero-quiet{padding-block:clamp(20px,3vw,32px) 4px}
 .hero-grid{display:grid; grid-template-columns:minmax(0,1fr); gap:34px; align-items:start; position:relative; z-index:1}
 .hero-eyebrow{
   font-family:var(--display); font-size:14px; font-weight:500; letter-spacing:.22em;
@@ -200,7 +201,6 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .arrow{display:inline-block; transition:transform .28s var(--ease); margin-left:.5em}
 .btn:hover .arrow, .linkish:hover .arrow{transform:translateX(4px)}
 
-.tally-line{font-family:var(--ui); font-size:15px; color:var(--text-2); margin:0}
 .linkish{font:inherit; background:none; border:0; color:var(--accent); cursor:pointer; padding:0;
   font-weight:600; border-bottom:1px solid var(--line-2)}
 .linkish:hover{border-bottom-color:var(--accent)}
@@ -1573,11 +1573,6 @@ function elementsOf(s){
     s.performances.filter(p => p.name.trim()));
 }
 const marksOn = (s, st) => elementsOf(s).filter(e => (e.status || "") === st).length;
-function assessed(s){
-  if (!s.seen) return false;
-  if (elementsOf(s).some(e => e.status || e.score > 0)) return true;
-  return !!(s.verdict.trim() || s.memory.trim());
-}
 function stale(s){
   const d = daysSince(s.seen);
   return !!s.seen && d !== null && d >= 120 && (s.status === "consider" || s.overall >= 8);
@@ -1586,22 +1581,6 @@ function stale(s){
 function seasonEarly(){
   const target = Math.max(+meta.eligibleTotal || 0, shows.length);
   return shows.filter(s => s.seen).length < target * 0.5;
-}
-function coverage(){
-  const seen = shows.filter(s => s.seen);
-  const logged = shows.length;
-  const unlogged = Math.max(0, (+meta.eligibleTotal || 0) - logged);
-  const catsSet = CATEGORIES.filter(c => catHealth(c).state === "set").length;
-  const thin = CATEGORIES.filter(c => catHealth(c).thin).length;
-  return {
-    logged, seen:seen.length, notSeen:logged - seen.length, unlogged,
-    unmarked:seen.filter(s => !assessed(s)).length,
-    considering:CATEGORIES.reduce((n, c) => n + catHealth(c).considering, 0),
-    toPlace:shows.reduce((n, s) => n + s.performances.filter(p =>
-      p.name.trim() && (p.billing === "unset" || p.division === "unset")).length, 0),
-    revisit:shows.filter(stale).length,
-    catsSet, thin,
-  };
 }
 
 /* ============================================================
@@ -2080,14 +2059,6 @@ function paintStrip(){
   const nameEl = $("#seasonName");
   if (nameEl && nameEl.value !== meta.label && document.activeElement !== nameEl) nameEl.value = meta.label;
 }
-/* The single line under the hero: what the season amounts to so far, in words. */
-function seasonLine(){
-  const c = coverage();
-  const bits = [c.seen + " of " + (c.logged || 0) + " productions seen"];
-  if (c.considering) bits.push(c.considering + " element" + (c.considering === 1 ? "" : "s") + " under consideration");
-  if (c.catsSet) bits.push(c.catsSet + " of 26 slates set");
-  return bits.join(" \u00b7 ");
-}
 
 /* ============================================================
    Season view — the ledger
@@ -2098,7 +2069,6 @@ function visibleShows(){
   if (filter === "overdue")    list = list.filter(s => s.booked && !s.seen && s.booked < new Date().toISOString().slice(0, 10));
   if (filter === "seen")       list = list.filter(s => s.seen);
   if (filter === "unseen")     list = list.filter(s => !s.seen);
-  if (filter === "unmarked")    list = list.filter(s => s.seen && !assessed(s));
   if (filter === "considering") list = list.filter(s => marksOn(s, "consider") > 0);
   if (filter === "revisit")    list = list.filter(stale);
   const byTitle = (a, b) => titleOf(a).localeCompare(titleOf(b));
@@ -2434,10 +2404,12 @@ function renderSchedule(){
 
   const booked = diary();
   const late = overdue();
-  const towriteUp = shows.filter(s => s.seen && !assessed(s));
 
   // The hero answers "what am I doing about this season", not "what is this season".
-  let html = '<section class="hero">' +
+  // With nothing booked and nothing overdue it has nothing to say, so it
+  // takes up little room and "What's next" becomes the page's real lead.
+  const heroQuiet = !booked.length && !late.length;
+  let html = '<section class="hero' + (heroQuiet ? " hero-quiet" : "") + '">' +
     '<div class="hero-grid">' +
       '<div class="hero-lead rise">' +
         '<input class="hero-eyebrow" id="seasonName" data-field="meta:label" aria-label="Season name" spellcheck="false">' +
@@ -2447,19 +2419,14 @@ function renderSchedule(){
             '<h1 class="hero-title"><button class="titlelink" data-act="open-show" data-id="' + booked[0].id + '">' +
               esc(titleOf(booked[0])) + "</button></h1>" +
             (booked[0].theatre ? '<p class="hero-msg">At ' + esc(booked[0].theatre) + "</p>" : "")
-          : '<h1 class="hero-title">Nothing booked</h1>') +
-        (late.length || towriteUp.length
+          : "") +
+        (late.length
           ? '<div class="hero-nudges">' +
-            (late.length
-              ? '<p class="hero-flag"><button class="linkish" data-act="set-filter" data-v="overdue">' +
-                "Did you see " + esc(titleOf(late[0])) + (late.length > 1 ? " and " + (late.length - 1) + " more" : "") +
-                "?<span class=\"arrow\" aria-hidden=\"true\">&rarr;</span></button></p>" : "") +
-            (towriteUp.length
-              ? '<p class="hero-flag"><button class="linkish" data-act="set-filter" data-v="unmarked">' +
-                towriteUp.length + " seen, not yet written up<span class=\"arrow\" aria-hidden=\"true\">&rarr;</span></button></p>" : "") +
+              '<p class="hero-flag"><button class="linkish" data-act="set-filter" data-v="overdue">' +
+              "Did you see " + esc(titleOf(late[0])) + (late.length > 1 ? " and " + (late.length - 1) + " more" : "") +
+              "?<span class=\"arrow\" aria-hidden=\"true\">&rarr;</span></button></p>" +
             "</div>"
           : "") +
-        '<p class="tally-line" style="margin-top:20px">' + seasonLine() + "</p>" +
       "</div>" +
       // The headline already names the first booking; the aside is only for
       // further bookings, since everything else is already the list below.
@@ -2498,7 +2465,7 @@ function renderSchedule(){
       "</p></div>";
   }
 
-  html += '<div class="sec"><div class="sec-head"><h2>Worth booking soon</h2>' +
+  html += '<div class="sec"><div class="sec-head"><h2>What’s next</h2>' +
     '<span class="eyebrow">opening in the next two months</span></div>';
   if (!soon.length){
     html += '<div class="empty"><h3>Nothing else opening soon</h3>' +
@@ -2512,18 +2479,31 @@ function renderSchedule(){
       "</button>").join("") + "</div>";
   }
   html += "</div>";
+
+  const seenList = shows.filter(s => s.seen).sort((a, b) => b.seen.localeCompare(a.seen));
+  html += '<div class="sec"><div class="sec-head"><h2>Seen</h2>' +
+    '<span class="eyebrow">' + seenList.length + " production" + (seenList.length === 1 ? "" : "s") + "</span></div>";
+  html += seenList.length
+    ? '<div class="upnext">' + seenList.map(s =>
+        '<button data-act="open-show" data-id="' + s.id + '">' +
+          '<span class="u-d">' + esc(fmtDate(s.seen)) + "</span>" +
+          '<span><span class="u-t">' + esc(titleOf(s)) + "</span>" +
+          '<span class="u-s">' + [esc(s.theatre), TYPES[s.type].label].filter(Boolean).join(" &middot; ") + "</span></span>" +
+        "</button>").join("") + "</div>"
+    : '<p class="hint" style="padding:10px 0">Nothing logged as seen yet.</p>';
+  html += "</div>";
   return html;
 }
 
 function renderSeason(){
-  const c = coverage();
+  const unlogged = Math.max(0, (+meta.eligibleTotal || 0) - shows.length);
   const list = visibleShows();
   const awardsFor = awardsByShow();
 
   let html = '<div class="toolbar">' +
     '<div class="field"><label for="fFilter">Show me</label><select class="inp" id="fFilter" data-act="set-filter-sel">' +
       [["all", "All"], ["booked", "Booked"], ["unseen", "Not seen"], ["seen", "Seen"],
-       ["unmarked", "Not written up"], ["considering", "Considering"]]
+       ["considering", "Considering"]]
       .map(([v, l]) => '<option value="' + v + '"' + (filter === v ? " selected" : "") + ">" + l + "</option>").join("") +
     "</select></div>" +
     '<div class="field"><label for="fSort">Order by</label><select class="inp" id="fSort" data-act="set-sort">' +
@@ -2541,8 +2521,8 @@ function renderSeason(){
       ' productions match \u201c' + esc(query) + '\u201d. <button class="btn btn-sm btn-ghost" data-act="clear-query">Clear</button></p>';
   }
 
-  if (c.unlogged > 0){
-    html += '<p class="hint" style="margin:-6px 0 16px">' + c.unlogged + " production" + (c.unlogged === 1 ? "" : "s") +
+  if (unlogged > 0){
+    html += '<p class="hint" style="margin:-6px 0 16px">' + unlogged + " production" + (unlogged === 1 ? "" : "s") +
       " opened this season that you have not logged yet. Log them as they are announced so nothing is missed in April.</p>";
   }
 
