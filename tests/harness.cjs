@@ -42,6 +42,8 @@ function app(options) {
   const listeners = {};
   const ctx = vm.createContext({
     console,
+    // Web globals the page can rely on in a browser.
+    URLSearchParams, URL, TextEncoder, Blob: globalThis.Blob,
     window: {},
     setTimeout: opts.realTimers ? setTimeout : () => 1,
     clearTimeout: opts.realTimers ? clearTimeout : () => {},

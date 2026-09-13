@@ -173,16 +173,25 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .hero-aside h2{font-family:var(--display); font-size:14px; font-weight:500; letter-spacing:.18em; text-transform:uppercase; color:var(--text-2); margin-bottom:14px}
 .upnext{display:flex; flex-direction:column}
 .upnext button{
-  display:grid; grid-template-columns:66px minmax(0,1fr); gap:14px; align-items:baseline;
+  display:grid; grid-template-columns:minmax(0,88px) minmax(0,1fr); gap:14px; align-items:baseline;
   padding:13px 0; border:0; border-bottom:1px solid var(--line); text-decoration:none; color:inherit;
   background:none; text-align:left; cursor:pointer; font:inherit; width:100%;
 }
 .upnext button:last-child{border-bottom:0}
 .upnext button:hover .u-t{color:var(--accent)}
-.u-d{font-family:var(--display); font-size:13px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-3); font-variant-numeric:tabular-nums}
+.u-d{font-family:var(--display); font-size:13px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--text-3); font-variant-numeric:tabular-nums; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .u-t{display:block; font-size:17px; font-weight:600; line-height:1.3; transition:color .2s var(--ease)}
 .u-s{display:block; font-size:14px; color:var(--text-3); margin-top:3px}
 
+.hero-flag{margin:14px 0 0}
+.titlelink{font:inherit; background:none; border:0; padding:0; color:var(--text); font-weight:600;
+  cursor:pointer; border-bottom:2px solid var(--line-2)}
+.titlelink:hover{border-bottom-color:var(--accent); color:var(--accent)}
+.cal-row{display:flex; gap:10px; flex-wrap:wrap; margin-top:18px}
+.cal-row .btn{text-decoration:none; display:inline-flex; align-items:center; justify-content:center}
+.pagefoot{display:flex; gap:12px; flex-wrap:wrap; margin-top:54px; padding-top:26px; border-top:1px solid var(--line)}
+#packet{margin-top:74px; padding-top:8px; border-top:2px solid var(--text)}
 .arrow{display:inline-block; transition:transform .28s var(--ease); margin-left:.5em}
 .btn:hover .arrow, .linkish:hover .arrow{transform:translateX(4px)}
 
@@ -560,7 +569,6 @@ details.passed > summary:hover{color:var(--text)}
     <nav class="tabs" role="tablist" aria-label="Sections">
       <button class="tab" role="tab" data-act="tab" data-tab="season" id="tab-season">Season</button>
       <button class="tab" role="tab" data-act="tab" data-tab="ballot" id="tab-ballot">Ballot</button>
-      <button class="tab" role="tab" data-act="tab" data-tab="report" id="tab-report">Nominations</button>
     </nav>
     <span class="savestate" id="saveState" role="status" aria-live="polite"></span>
   </div>
@@ -697,7 +705,7 @@ function blankCrafts(){
 }
 function newShow(patch){
   const s = {
-    id:uid(), title:"", type:"new-play", theatre:"", opened:"", seen:"",
+    id:uid(), title:"", type:"new-play", theatre:"", opened:"", seen:"", booked:"", bookedTime:"",
     author:"", eligibilityNote:"", rosterId:"",
     ruling:"", rulingSource:"", rulingDate:"",
     eligible:true, recused:false, recusalNote:"", revisit:false,
@@ -715,6 +723,7 @@ function normalizeShow(s){
   }
   s.author = s.author || ""; s.eligibilityNote = s.eligibilityNote || "";
   s.rosterId = s.rosterId || "";
+  s.booked = s.booked || ""; s.bookedTime = s.bookedTime || "";
   s.ruling = RULINGS[s.ruling] ? s.ruling : "";
   s.rulingSource = s.rulingSource || ""; s.rulingDate = s.rulingDate || "";
   s.performances = (s.performances||[]).map(p => ({
@@ -1438,6 +1447,85 @@ function daysSince(iso){
   if (isNaN(d)) return null;
   return Math.floor((Date.now() - d.getTime()) / MS_DAY);
 }
+/* Productions you hold tickets for and have not yet seen, soonest first. */
+function diary(){
+  const today = new Date().toISOString().slice(0, 10);
+  return shows.filter(s => s.booked && !s.seen && s.booked >= today)
+    .sort((a, b) => (a.booked + (a.bookedTime || "")).localeCompare(b.booked + (b.bookedTime || "")));
+}
+/* Booked, the date has passed, and still not logged: the ledger should ask. */
+function overdue(){
+  const today = new Date().toISOString().slice(0, 10);
+  return shows.filter(s => s.booked && !s.seen && s.booked < today)
+    .sort((a, b) => b.booked.localeCompare(a.booked));
+}
+/* Three lengths, because a headline, a diary column and a list chip each want
+   a different one. None of them include the time: that belongs in the sentence. */
+function bookedDays(s){
+  const d = new Date(s.booked + "T12:00:00");
+  if (isNaN(d)) return null;
+  return Math.round((d - new Date(new Date().toISOString().slice(0, 10) + "T12:00:00")) / MS_DAY);
+}
+function bookedDay(s){                       // headline: one word wherever possible
+  if (!s.booked) return "";
+  const n = bookedDays(s);
+  if (n === null) return s.booked;
+  if (n === 0) return "Tonight";
+  if (n === 1) return "Tomorrow";
+  if (n > 1 && n < 7) return new Date(s.booked + "T12:00:00").toLocaleDateString(undefined, {weekday:"long"});
+  return fmtDate(s.booked);
+}
+function bookedShort(s){                     // diary column and list chip
+  if (!s.booked) return "";
+  const n = bookedDays(s);
+  if (n === 0) return "Tonight";
+  if (n === 1) return "Tomorrow";
+  const d = new Date(s.booked + "T12:00:00");
+  return (n !== null && n > 1 && n < 7)
+    ? d.toLocaleDateString(undefined, {weekday:"short"})
+    : d.toLocaleDateString(undefined, {weekday:"short", month:"short", day:"numeric"});
+}
+function whenBooked(s){                      // full, for a sentence
+  return !s.booked ? "" : bookedDay(s) + (s.bookedTime ? ", " + s.bookedTime : "");
+}
+
+/* ---- Taking it to a calendar ----
+   A curtain is a fixed local time, so the event is written as floating local
+   time with no timezone: it means 7pm wherever the calendar is read. */
+function icsStamp(date, time){
+  const t = (time || "19:30").replace(":", "") + "00";
+  return date.replace(/-/g, "") + "T" + t;
+}
+function addHours(date, time, hours){
+  const d = new Date(date + "T" + (time || "19:30") + ":00");
+  d.setHours(d.getHours() + hours);
+  const p = n => String(n).padStart(2, "0");
+  return "" + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "T" + p(d.getHours()) + p(d.getMinutes()) + "00";
+}
+const icsEscape = v => String(v || "").replace(/([,;\\])/g, "\\$1").replace(/\r?\n/g, "\\n");
+function icsFor(s){
+  const start = icsStamp(s.booked, s.bookedTime);
+  const end = addHours(s.booked, s.bookedTime, 3);
+  return [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//The Nominator's Ledger//EN", "CALSCALE:GREGORIAN",
+    "BEGIN:VEVENT", "UID:" + s.id + "@nominators-ledger",
+    "DTSTAMP:" + new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, ""),
+    "DTSTART:" + start, "DTEND:" + end,
+    "SUMMARY:" + icsEscape(titleOf(s)),
+    "LOCATION:" + icsEscape(s.theatre),
+    "DESCRIPTION:" + icsEscape([s.author, TYPES[s.type].label].filter(Boolean).join(" \u00b7 ")),
+    "END:VEVENT", "END:VCALENDAR",
+  ].join("\r\n");
+}
+function googleCalendarUrl(s){
+  const q = new URLSearchParams({
+    action:"TEMPLATE", text:titleOf(s),
+    dates:icsStamp(s.booked, s.bookedTime) + "/" + addHours(s.booked, s.bookedTime, 3),
+    location:s.theatre || "", details:[s.author, TYPES[s.type].label].filter(Boolean).join(" \u00b7 "),
+  });
+  return "https://calendar.google.com/calendar/render?" + q.toString();
+}
+
 /* Every element on a production that can carry a verdict. */
 function elementsOf(s){
   return [s].concat(
@@ -1997,6 +2085,8 @@ function seasonLine(){
    ============================================================ */
 function visibleShows(){
   let list = shows.filter(matchesQuery);
+  if (filter === "booked")     list = list.filter(s => s.booked && !s.seen);
+  if (filter === "overdue")    list = list.filter(s => s.booked && !s.seen && s.booked < new Date().toISOString().slice(0, 10));
   if (filter === "seen")       list = list.filter(s => s.seen);
   if (filter === "unseen")     list = list.filter(s => !s.seen);
   if (filter === "unmarked")    list = list.filter(s => s.seen && !assessed(s));
@@ -2322,25 +2412,6 @@ function renderRecovery(){
   "</div>";
 }
 
-/* The headline says where the season is; it is short by design, because a long
-   season label cannot be set at display size without clipping. */
-function heroHeadline(c){
-  if (!c.logged) return "Load the season";
-  if (!c.seen) return "The season starts";
-  if (c.notSeen === 0) return "All seen. Build the ballot";
-  return c.notSeen + " still to see";
-}
-function heroMessage(c, next){
-  if (!c.logged) return "Paste a press release, or add a production by hand.";
-  if (!c.seen) return next
-    ? "First up is <strong>" + esc(titleOf(next)) + "</strong> at " + esc(next.theatre || "the theatre") +
-      ", opening " + fmtDate(next.opened) + "."
-    : "The ledger is loaded and waiting for its first night.";
-  if (c.notSeen === 0) return "Every production logged has been seen. The work is on the ballot now.";
-  return (next ? "Next is <strong>" + esc(titleOf(next)) + "</strong> on " + fmtDate(next.opened) + ". " : "") +
-    "Log each one the night you see it.";
-}
-
 function renderSeason(){
   const c = coverage();
   const list = visibleShows();
@@ -2351,27 +2422,42 @@ function renderSeason(){
     .sort((a, b) => a.opened.localeCompare(b.opened));
   const next = upcoming[0];
 
+  const booked = diary();
+  const late = overdue();
+  const towriteUp = shows.filter(s => s.seen && !assessed(s));
+
+  // The hero answers "what am I doing about this season", not "what is this season".
   let html = '<section class="hero">' +
     (years ? '<div class="hero-mark" aria-hidden="true">' + esc(years) + "</div>" : "") +
     '<div class="hero-grid">' +
       '<div class="hero-lead rise">' +
         '<input class="hero-eyebrow" id="seasonName" data-field="meta:label" aria-label="Season name" spellcheck="false">' +
-        '<h1 class="hero-title">' + esc(heroHeadline(c)) + "</h1>" +
-        '<p class="hero-msg">' + heroMessage(c, next) + "</p>" +
-        '<div class="hero-actions">' +
-          '<button class="btn btn-primary btn-lg" data-act="quick-open">I just saw a show<span class="arrow" aria-hidden="true">&rarr;</span></button>' +
-          '<button class="linkish" data-act="intake-open">Paste a press release<span class="arrow" aria-hidden="true">&rarr;</span></button>' +
-        "</div>" +
-        '<p class="tally-line" style="margin-top:26px">' + seasonLine() + "</p>" +
+        (booked.length
+          ? '<h1 class="hero-title">' + esc(bookedDay(booked[0])) + "</h1>" +
+            '<p class="hero-msg">' + (booked[0].bookedTime ? esc(booked[0].bookedTime) + " &mdash; " : "") +
+              '<button class="titlelink" data-act="open-show" data-id="' + booked[0].id + '">' +
+              esc(titleOf(booked[0])) + "</button>" +
+              (booked[0].theatre ? " at " + esc(booked[0].theatre) : "") + "." +
+              (booked.length > 1 ? " Then " + booked.slice(1, 3).map(s => esc(titleOf(s))).join(", ") + "." : "") + "</p>"
+          : '<h1 class="hero-title">Nothing booked</h1>' +
+            '<p class="hero-msg">Open a production below and set the night you are going &mdash; it will appear here and can go straight to your calendar.</p>') +
+        (late.length
+          ? '<p class="hero-flag"><button class="linkish" data-act="set-filter" data-v="overdue">' +
+            "Did you see " + esc(titleOf(late[0])) + (late.length > 1 ? " and " + (late.length - 1) + " more" : "") +
+            "?<span class=\"arrow\" aria-hidden=\"true\">&rarr;</span></button></p>" : "") +
+        (towriteUp.length
+          ? '<p class="hero-flag"><button class="linkish" data-act="set-filter" data-v="unmarked">' +
+            towriteUp.length + " seen, not yet written up<span class=\"arrow\" aria-hidden=\"true\">&rarr;</span></button></p>" : "") +
+        '<p class="tally-line" style="margin-top:22px">' + seasonLine() + "</p>" +
       "</div>" +
-      '<aside class="hero-aside rise rise-2" aria-label="Opening next">' +
-        "<h2>Opening next</h2>" +
-        (upcoming.length
-          ? '<div class="upnext">' + upcoming.slice(0, 4).map(s =>
+      '<aside class="hero-aside rise rise-2" aria-label="' + (booked.length ? "Your diary" : "Opening next") + '">' +
+        "<h2>" + (booked.length ? "Your diary" : "Opening next") + "</h2>" +
+        ((booked.length ? booked : upcoming).length
+          ? '<div class="upnext">' + (booked.length ? booked : upcoming).slice(0, 4).map(s =>
               '<button data-act="open-show" data-id="' + s.id + '">' +
-                '<span class="u-d">' + esc(fmtDate(s.opened)) + "</span>" +
+                '<span class="u-d">' + esc(booked.length ? bookedShort(s) : fmtDate(s.opened)) + "</span>" +
                 '<span><span class="u-t">' + esc(titleOf(s)) + "</span>" +
-                '<span class="u-s">' + [esc(s.theatre), TYPES[s.type].label].filter(Boolean).join(" &middot; ") + "</span></span>" +
+                '<span class="u-s">' + [esc(s.theatre), booked.length ? "" : TYPES[s.type].label].filter(Boolean).join(" &middot; ") + "</span></span>" +
               "</button>").join("") + "</div>"
           : '<p class="hint">Nothing with a date left to open.</p>') +
       "</aside>" +
@@ -2398,7 +2484,8 @@ function renderSeason(){
     "</div></div>" +
     '<div class="field"><label for="fFilter">Also</label><select class="inp" id="fFilter" data-act="set-filter-sel">' +
       [["", "No further filter"],
-       ["unmarked","Seen, nothing marked (" + c.unmarked + ")"],
+       ["booked","Booked to see"],
+       ["unmarked","Seen, not written up (" + c.unmarked + ")"],
        ["considering","Something under consideration"],
        ["revisit","Worth a second look (" + c.revisit + ")"],
        ["recused","Recused (" + c.recused + ")"]]
@@ -2414,9 +2501,7 @@ function renderSeason(){
       '<input class="inp" id="fSearch" type="search" value="' + esc(query) + '" data-act="set-query" ' +
       'placeholder="Title, theatre, designer, performer" autocomplete="off"></div>' +
     '<div class="spacer"></div>' +
-    '<div class="actions">' +
-      '<button class="btn" data-act="new-show">Add a production</button>' +
-    "</div>" +
+    "" +
   "</div>";
   if (query){
     html += '<p class="hint" style="margin:-6px 0 14px">' + list.length + " of " + shows.length +
@@ -2448,6 +2533,7 @@ function renderSeason(){
       if (s.recused) flags.push('<span class="chip chip-accent">Recused</span>');
       if (!s.eligible) flags.push('<span class="chip chip-quiet">Not eligible</span>');
       if (s.revisit || stale(s)) flags.push('<span class="chip chip-warn">Revisit</span>');
+      if (s.booked && !s.seen) flags.push('<span class="chip chip-consider">' + esc(bookedShort(s)) + "</span>");
 
       html += '<button class="lrow' + (s.seen ? " is-seen" : "") + '" data-act="open-show" data-id="' + s.id + '">' +
         '<div class="c-title"><div class="title">' +
@@ -2466,6 +2552,12 @@ function renderSeason(){
     }
   }
   html += "</div>";
+
+  // Housekeeping belongs after the season, not in front of it.
+  html += '<div class="pagefoot">' +
+    '<button class="btn" data-act="intake-open">Paste a press release<span class="arrow" aria-hidden="true">&rarr;</span></button>' +
+    '<button class="btn" data-act="new-show">Add a production by hand</button>' +
+  "</div>";
   return html;
 }
 
@@ -2535,7 +2627,25 @@ function renderSheet(){
       '<div class="field"><label for="au-' + s.id + '">Written by</label><input class="inp" id="au-' + s.id + '" value="' + esc(s.author) + '" data-field="' + f("author") + '" placeholder="Author, or book and score credits"></div>' +
       '<div class="field"><label for="th-' + s.id + '">Theatre</label><input class="inp" id="th-' + s.id + '" value="' + esc(s.theatre) + '" data-field="' + f("theatre") + '"></div>' +
       '<div class="field"><label for="op-' + s.id + '">Opening night</label><input class="inp mono" id="op-' + s.id + '" type="date" value="' + esc(s.opened) + '" data-field="' + f("opened") + '"></div>' +
-      '<div class="field"><label for="sn-' + s.id + '">Date I saw it</label><input class="inp mono" id="sn-' + s.id + '" type="date" value="' + esc(s.seen) + '" data-field="' + f("seen") + '" data-rerender="1"></div>' +
+    "</div>" +
+
+    '<div class="block"><h3>' + (s.seen ? "When you saw it" : "When you are going") + "</h3>" +
+      '<p class="hint">Book the night and it appears in your diary; log the date you went and the ledger starts asking for a verdict.</p>' +
+      '<div class="grid3">' +
+        '<div class="field"><label for="bk-' + s.id + '">Booked for</label>' +
+          '<input class="inp" id="bk-' + s.id + '" type="date" value="' + esc(s.booked) + '" data-field="' + f("booked") + '" data-rerender="1"></div>' +
+        '<div class="field"><label for="bt-' + s.id + '">Curtain</label>' +
+          '<input class="inp" id="bt-' + s.id + '" type="time" value="' + esc(s.bookedTime) + '" data-field="' + f("bookedTime") + '" data-rerender="1"></div>' +
+        '<div class="field"><label for="sn-' + s.id + '">Date I saw it</label>' +
+          '<input class="inp" id="sn-' + s.id + '" type="date" value="' + esc(s.seen) + '" data-field="' + f("seen") + '" data-rerender="1"></div>' +
+      "</div>" +
+      (s.booked && !s.seen
+        ? '<div class="cal-row">' +
+            '<a class="btn" href="' + esc(googleCalendarUrl(s)) + '" target="_blank" rel="noopener">Add to Google Calendar<span class="arrow" aria-hidden="true">&rarr;</span></a>' +
+            '<button class="btn" data-act="ics" data-id="' + s.id + '">Download .ics</button>' +
+            '<button class="btn btn-primary" data-act="mark-seen" data-id="' + s.id + '">I saw it</button>' +
+          "</div>"
+        : "") +
     "</div>" +
 
     '<div class="block"><h3>The night itself</h3>' +
@@ -2705,6 +2815,10 @@ function renderBallot(){
     }
     html += "</div>";
   }
+  // The packet is the end of the ballot, not a separate reading of it.
+  html += '<div class="sec" id="packet"><div class="sec-head"><h2>The meeting packet</h2>' +
+    '<p class="hint" style="width:100%; margin-top:6px">Your slates, alternates and everything still ' +
+    'unresolved, ready to print or take away.</p></div>' + renderReport() + "</div>";
   return html;
 }
 
@@ -2729,7 +2843,7 @@ function renderReport(){
     html += '<div class="banner no-print"><p><strong>' + problems.length + " categor" + (problems.length === 1 ? "y is" : "ies are") +
       " not settled" + (seasonEarly() ? ", which is where a season this early should be" : "") + ".</strong> " + problems.slice(0, 6).map(p => esc(p.cat.name) + " (" + esc(p.h.label || (p.h.noms + "/" + p.h.target)) + ")").join("; ") +
       (problems.length > 6 ? "; and " + (problems.length - 6) + " more." : ".") + "</p>" +
-      '<button class="btn" data-act="tab" data-tab="ballot">Back to the ballot</button></div>';
+      "</div>";
   }
 
   html += '<div class="report"><div class="report-head"><span class="eyebrow">Nominating ballot</span>' +
@@ -2840,6 +2954,11 @@ async function download(filename, text){
     if (dl){ await dl.save({filename, data:text}); return; }
   } catch (e){
     if (e && e.code === "declined") return;
+    // Calendar files sit outside the host's allowed extensions; point at the link instead.
+    if (e && e.code === "rejected_extension" && /\.ics$/.test(filename)){
+      toast("Calendar files cannot be saved here \u2014 use Add to Google Calendar.");
+      return;
+    }
     toast("That download did not go through.");
     return;
   }
@@ -2962,6 +3081,22 @@ document.addEventListener("click", async e => {
   const act = el.dataset.act;
 
   if (act === "undo"){ takeUndo(); return; }
+
+  if (act === "mark-seen"){
+    const s = getShow(el.dataset.id);
+    if (!s) return;
+    s.seen = s.booked || new Date().toISOString().slice(0, 10);
+    queueSave("show", s.id);
+    renderSheet(); render({keepSheet:true});
+    toast("Logged as seen on " + fmtDate(s.seen));
+    return;
+  }
+  if (act === "ics"){
+    const s = getShow(el.dataset.id);
+    if (!s || !s.booked) return;
+    await download(titleOf(s).replace(/[^A-Za-z0-9]+/g, "-").toLowerCase() + ".ics", icsFor(s));
+    return;
+  }
 
   /* ---- press release intake ---- */
   if (act === "intake-open"){ startIntake(); render(); window.scrollTo({top:0, behavior:"instant"}); return; }
@@ -3310,8 +3445,7 @@ function render(opts){
     : rosterUpdate ? renderRosterUpdate()
     : compareCat ? renderCompare(CAT_BY_ID[compareCat])
     : tab === "season" ? renderSeason()
-    : tab === "ballot" ? renderBallot()
-    : renderReport();
+    : renderBallot();
   if (!recovery) paintStrip();
   paintSaveState();
   renderQuick();

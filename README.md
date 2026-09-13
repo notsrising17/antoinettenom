@@ -67,8 +67,23 @@ and how many categories have a thin field.
 Filters cut the ledger down to what needs work: not yet seen, seen but nothing
 marked, something marked consider, worth a second look, recused.
 
-Three sections, named for the work: **Season** (log what you saw), **Ballot**
-(build the slates), **Nominations** (the finished packet).
+Two sections: **Season** (what you are seeing and what you saw) and **Ballot**
+(build the slates, and the meeting packet at its foot).
+
+### Booking a night
+
+Open a production and set **Booked for** plus a curtain time. It moves into *Your
+diary* in the hero, shows the night in the list, and offers **Add to Google
+Calendar** or a downloaded `.ics`. The event is written as floating local time —
+a 7.30 curtain is 7.30 wherever the calendar is read — with a three-hour run.
+
+Once the date has passed without being logged, the ledger asks: *Did you see
+it?* One click logs it on the booked date. Nothing that was booked and missed
+quietly disappears.
+
+Note: `.ics` is outside the host's allowed download extensions in the published
+page, so there the Google Calendar link is the working route; the download works
+when the file is opened locally. The app says so rather than failing silently.
 
 ### The assessment sheet
 
