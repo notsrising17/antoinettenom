@@ -331,13 +331,16 @@ details.passed > summary:hover{color:var(--text)}
 
 .foot{border-top:1px solid var(--line); padding-block:18px 34px; color:var(--text-3); font-size:12.5px}
 .foot p{margin:0 0 6px}
+#storageWarning{position:fixed; bottom:12px; left:0; right:0; z-index:95; max-width:680px}
+#storageWarning[hidden]{display:none}
+#storageWarning .banner{background:var(--crit-soft); border-color:var(--crit); margin:0; box-shadow:0 4px 24px #0003}
 .toast{
   position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:90;
   background:var(--text); color:var(--bg); padding:9px 16px; border-radius:var(--r);
   font-family:var(--mono); font-size:12px; letter-spacing:.04em; box-shadow:var(--shadow);
 }
 @media print{
-  .marquee,.strip,.foot,.exports,.sheet-wrap,.toast,.no-print{display:none!important}
+  .marquee,.strip,.foot,.exports,.sheet-wrap,.toast,#storageWarning,.no-print{display:none!important}
   body{background:#fff; color:#000}
   .report{border:0; padding:0; max-width:none}
 }
@@ -362,9 +365,10 @@ details.passed > summary:hover{color:var(--text)}
 </header>
 
 <main class="wrap view" id="view" tabindex="-1"></main>
+<div class="wrap" id="storageWarning" role="alert" hidden></div>
 
 <div class="sheet-wrap" id="sheetWrap" hidden></div>
-<div class="toast" id="toast" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <footer class="wrap foot">
   <p>Your assessments stay in this ledger. Download a backup before the nominating meeting &mdash; it is the only copy you control.</p>
@@ -526,7 +530,7 @@ function initLocal(){
     try {
       const d = JSON.parse(raw);
       shows = (d.shows||[]).map(normalizeShow);
-      meta = Object.assign(defaultMeta(), d.meta||{});
+      meta = Object.assign(defaultMeta(), {dataVersion:0}, d.meta||{});
       ballot = d.ballot || {picks:{}};
       if (rosterStale() && untouched()) seedSeason();
       migrateVerdicts();
@@ -538,13 +542,30 @@ function initLocal(){
   }
 }
 function writeLocal(){
-  try { localStorage.setItem(LS_KEY, JSON.stringify({shows, meta, ballot})); } catch {}
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({shows, meta, ballot}));
+    storageNote = "";
+    paintStorageWarning();
+    return true;
+  } catch {
+    storageNote = "Your latest changes could not be saved in this browser. Keep this tab open and download a backup before leaving.";
+    paintStorageWarning();
+    return false;
+  }
+}
+
+function paintStorageWarning(){
+  const warning = document.querySelector("#storageWarning");
+  if (!warning) return;
+  warning.hidden = !storageNote;
+  warning.innerHTML = storageNote ? '<div class="banner"><p>' + esc(storageNote) +
+    '</p><button class="btn" data-act="export-json">Download backup</button></div>' : "";
 }
 
 async function initDb(){
   const metaSnap = await db.doc("season/meta").get().catch(() => null);
   const hasMeta = metaSnap && metaSnap.exists;
-  if (hasMeta) meta = Object.assign(defaultMeta(), metaSnap.data());
+  if (hasMeta) meta = Object.assign(defaultMeta(), {dataVersion:0}, metaSnap.data());
   const ballotSnap = await db.doc("season/ballot").get().catch(() => null);
   if (ballotSnap && ballotSnap.exists) ballot = Object.assign({picks:{}}, ballotSnap.data());
   const showSnap = await db.collection("shows").get().catch(() => null);
@@ -606,9 +627,9 @@ function untouched(){
   if (!meta.sample) return false;
   if (Object.values(ballot.picks || {}).some(cat => Object.keys(cat || {}).length)) return false;
   return !shows.some(s =>
-    s.seen || s.overall || s.verdict || s.memory || s.revisit || s.recused ||
-    s.performances.some(p => p.score || p.note) ||
-    CRAFTS.some(c => s.crafts[c.key].score || s.crafts[c.key].note));
+    s.seen || s.overall || s.verdict || s.memory || s.status || s.revisit || s.recused ||
+    s.performances.some(p => p.score || p.note || p.status) ||
+    CRAFTS.some(c => s.crafts[c.key].score || s.crafts[c.key].note || s.crafts[c.key].status));
 }
 const rosterStale = () => (+meta.rosterVersion || 0) !== ROSTER_VERSION;
 
@@ -632,6 +653,8 @@ function migrateVerdicts(){
 }
 
 function queueSave(kind, id){
+  // Local storage is synchronous: persist before a close or reload can discard the edit.
+  if (!db){ writeLocal(); return; }
   const key = kind + ":" + (id||"");
   clearTimeout(saveTimers[key]);
   saveTimers[key] = setTimeout(() => flushSave(kind, id), 500);
@@ -1170,10 +1193,6 @@ function renderSeason(){
       'Titles, classifications, theatres, opening nights, credits and casting are a matter of record. Every score is zero and every note is empty — those are yours. ' +
       'Dates move, casting is added, and classifications get ruled on, so check anything you are about to rely on. More productions will be announced through the winter; raise the eligible count as they are.</p>' +
       '<button class="btn" data-act="clear-sample">Start an empty season</button></div>';
-  }
-  if (storageNote){
-    html += '<div class="banner" style="border-color:var(--crit); border-left-color:var(--crit); background:var(--crit-soft)"><p>' + esc(storageNote) + "</p>" +
-      '<button class="btn" data-act="export-json">Download backup</button></div>';
   }
 
   html += '<div class="toolbar">' +
@@ -1796,6 +1815,7 @@ function render(opts){
   document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === tab)));
   $("#view").innerHTML = tab === "season" ? renderSeason() : tab === "ballot" ? renderBallot() : renderReport();
   paintStrip();
+  paintStorageWarning();
   if (!opts.keepSheet) renderSheet();
 }
 
