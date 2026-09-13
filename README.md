@@ -21,9 +21,10 @@ to score what you saw. One button empties it if you would rather start clean.
 
 ### Season
 
-The ledger. One row per production: when you saw it, how long ago that was, your
-verdict on it, how many of its elements you have marked, and what still needs
-attention. The coverage strip across the top is the state of the season at a
+The ledger. One row per production, in opening-night order: when you saw it, how
+long ago that was, **which awards it is currently under consideration for**, and
+what still needs attention. Seen / not seen is the first control, because it is
+the filter that actually gets used. The coverage strip across the top is the state of the season at a
 glance — seen, still to see, unmarked, how many elements you are considering,
 how many performances still need placing, marked for a second look, slates set,
 and how many categories have a thin field.
@@ -55,6 +56,11 @@ one of three verdicts: **consider**, **undecided**, or **pass**. Everything
 starts undecided, and marking something *consider* is what puts it on that
 category's list. That is the whole mechanism; you never have to give a number to
 anything.
+
+**Pass is private.** It records that you gave something thought and moved on, and
+it is reported nowhere else — no badge on the ledger, no flag, no count. A
+production you passed on can still be under consideration for its design or a
+performance, and the ledger will say so without mentioning the pass.
 
 Scoring is there when you want it. Each element also has an optional ten-segment
 fader — click it, or focus it and use the arrow keys, `0`–`9`, `Home`, or `End`.

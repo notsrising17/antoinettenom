@@ -6,49 +6,53 @@
 <title>The Nominator's Ledger</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400&family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Archivo+Narrow:wght@400;500;600;700&display=swap">
 <style>
-/* ---- tokens: light (complete set) ---- */
+/* ---- An official ballot: security tint, ink, one red for marks. ----
+   Radius is zero throughout; rules carry weight instead of borders. */
 :root{
-  --bg:#F1EDED; --surface:#FCFAFA; --surface-2:#E8E2E2; --surface-3:#DBD3D3;
-  --line:#D5CCCC; --line-2:#BCB0B0;
-  --text:#1E1819; --text-2:#5C5152; --text-3:#8A7D7E;
-  --accent:#8E2436; --accent-2:#B23A4E; --accent-soft:#F7E5E7;
-  --brass:#96701D; --brass-2:#C59B3B; --brass-soft:#EFE5CC;
-  --good:#2C6A4E; --good-soft:#E1EDE6;
-  --warn:#8E5D0E; --warn-soft:#F5E9D4;
-  --crit:#A32E27; --crit-soft:#F7E2DF;
-  --shadow:0 1px 1px rgba(30,24,25,.05), 0 10px 28px -14px rgba(30,24,25,.22);
-  --r:3px;
-  --display:"Bodoni Moda",Georgia,"Times New Roman",serif;
-  --ui:"Archivo","Helvetica Neue",Arial,sans-serif;
-  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --bg:#E9EFE7; --surface:#F6F9F5; --surface-2:#DCE5DA; --surface-3:#CBD7C9;
+  --line:#A9B6AA; --line-2:#748072;
+  --text:#101512; --text-2:#404B43; --text-3:#6B776D;
+  --accent:#A3241B; --accent-2:#C43227; --accent-soft:#F5E2DF;
+  --brass:#7A5A12; --brass-2:#A07A22; --brass-soft:#EFE7CF;
+  --good:#1F5C2C; --good-soft:#DDEBDD;
+  --warn:#7A5A12; --warn-soft:#F0E8D2;
+  --crit:#A3241B; --crit-soft:#F5E2DF;
+  --shadow:0 1px 0 rgba(16,21,18,.10);
+  --r:0px;
+  --display:"Libre Baskerville",Georgia,"Times New Roman",serif;
+  --ui:"Archivo Narrow","Helvetica Neue",Arial,sans-serif;
+  --mono:"Archivo Narrow","Helvetica Neue",Arial,sans-serif;
+  --guilloche:repeating-radial-gradient(circle at 50% 42%, rgba(16,21,18,.055) 0 7px, transparent 7px 15px);
   color-scheme:light;
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --bg:#151011; --surface:#1E1718; --surface-2:#281F20; --surface-3:#322829;
-    --line:#352B2C; --line-2:#4A3C3D;
-    --text:#F1E9E8; --text-2:#B3A5A4; --text-3:#887979;
-    --accent:#CD4A5E; --accent-2:#E4788A; --accent-soft:#3A1A20;
-    --brass:#D4AB50; --brass-2:#EBC978; --brass-soft:#342913;
-    --good:#63B28A; --good-soft:#17301F;
-    --warn:#D9A447; --warn-soft:#33270F;
-    --crit:#E4726A; --crit-soft:#37201D;
-    --shadow:0 1px 1px rgba(0,0,0,.4), 0 14px 34px -16px rgba(0,0,0,.7);
+    --bg:#101512; --surface:#161C18; --surface-2:#1E251F; --surface-3:#2A322B;
+    --line:#2F3A31; --line-2:#4B5A4D;
+    --text:#E7EFE6; --text-2:#AFBCB0; --text-3:#7E8C80;
+    --accent:#E0655A; --accent-2:#EE8076; --accent-soft:#2E1B19;
+    --brass:#C9A24A; --brass-2:#DDBB6B; --brass-soft:#2C2512;
+    --good:#63B07A; --good-soft:#16271A;
+    --warn:#C9A24A; --warn-soft:#2C2512;
+    --crit:#E0655A; --crit-soft:#2E1B19;
+    --shadow:0 1px 0 rgba(0,0,0,.5);
+    --guilloche:repeating-radial-gradient(circle at 50% 42%, rgba(231,239,230,.05) 0 7px, transparent 7px 15px);
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#151011; --surface:#1E1718; --surface-2:#281F20; --surface-3:#322829;
-  --line:#352B2C; --line-2:#4A3C3D;
-  --text:#F1E9E8; --text-2:#B3A5A4; --text-3:#887979;
-  --accent:#CD4A5E; --accent-2:#E4788A; --accent-soft:#3A1A20;
-  --brass:#D4AB50; --brass-2:#EBC978; --brass-soft:#342913;
-  --good:#63B28A; --good-soft:#17301F;
-  --warn:#D9A447; --warn-soft:#33270F;
-  --crit:#E4726A; --crit-soft:#37201D;
-  --shadow:0 1px 1px rgba(0,0,0,.4), 0 14px 34px -16px rgba(0,0,0,.7);
+  --bg:#101512; --surface:#161C18; --surface-2:#1E251F; --surface-3:#2A322B;
+  --line:#2F3A31; --line-2:#4B5A4D;
+  --text:#E7EFE6; --text-2:#AFBCB0; --text-3:#7E8C80;
+  --accent:#E0655A; --accent-2:#EE8076; --accent-soft:#2E1B19;
+  --brass:#C9A24A; --brass-2:#DDBB6B; --brass-soft:#2C2512;
+  --good:#63B07A; --good-soft:#16271A;
+  --warn:#C9A24A; --warn-soft:#2C2512;
+  --crit:#E0655A; --crit-soft:#2E1B19;
+  --shadow:0 1px 0 rgba(0,0,0,.5);
+  --guilloche:repeating-radial-gradient(circle at 50% 42%, rgba(231,239,230,.05) 0 7px, transparent 7px 15px);
   color-scheme:dark;
 }
 
@@ -56,7 +60,7 @@
 [hidden]{display:none!important}   /* class selectors below would otherwise outrank the UA rule */
 body{
   margin:0; background:var(--bg); color:var(--text);
-  font-family:var(--ui); font-size:15px; line-height:1.5;
+  font-family:var(--ui); font-size:15.5px; line-height:1.55;
   -webkit-font-smoothing:antialiased;
 }
 h1,h2,h3,h4{margin:0; text-wrap:balance; font-weight:600}
@@ -69,68 +73,78 @@ a{color:var(--accent)}
 
 .wrap{max-width:1180px; margin:0 auto; padding-inline:20px}
 .mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
+/* The single letterspaced-caps style permitted anywhere in the interface. */
 .eyebrow{
-  font-family:var(--mono); font-size:10.5px; font-weight:500; letter-spacing:.14em;
-  text-transform:uppercase; color:var(--text-3);
+  font-family:var(--ui); font-size:11px; font-weight:600; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--text-2);
+}
+/* Everything else that used to be mono caps is small caps on the form face. */
+.field > label, .lhead, .stat span, .craft-head, .craft-name, .cand-group h4,
+.rgroup > h3, .tally th, .quick-field > label, .attn-group h3, .legend{
+  font-family:var(--ui); font-variant-caps:all-small-caps; font-weight:600;
+  letter-spacing:.05em; text-transform:none; font-size:13px; color:var(--text-2);
 }
 
 /* ---- marquee ---- */
 .marquee{
-  border-bottom:1px solid var(--line); background:var(--surface);
+  border-bottom:3px double var(--text); background:var(--surface);
+  background-image:var(--guilloche); background-repeat:no-repeat; background-size:100% 210px;
   position:sticky; top:0; z-index:30;
 }
 .marquee-top{display:flex; align-items:flex-end; gap:24px; flex-wrap:wrap; padding-block:18px 14px}
 .brand{flex:1 1 260px; min-width:0}
 .brand .eyebrow{display:block; margin-bottom:3px}
 .season-name{
-  font-family:var(--display); font-size:clamp(26px,4.4vw,37px); font-weight:600;
-  letter-spacing:-.015em; line-height:1.05; background:none; border:0; padding:0;
-  width:100%; border-bottom:1px dashed transparent;
+  font-family:var(--display); font-size:clamp(21px,3.4vw,30px); font-weight:700;
+  letter-spacing:0; line-height:1.15; background:none; border:0; padding:0;
+  width:100%; border-bottom:1px dashed transparent; color:var(--text);
 }
 .season-name:hover{border-bottom-color:var(--line-2)}
 .season-name:focus{outline:none; border-bottom-color:var(--accent)}
 .tabs{display:flex; gap:2px; flex-wrap:wrap}
 .tab{
-  font-family:var(--mono); font-size:11.5px; letter-spacing:.08em; text-transform:uppercase;
+  font-family:var(--ui); font-size:15px; font-variant-caps:all-small-caps; letter-spacing:.05em; font-weight:600;
   background:none; border:1px solid transparent; border-bottom:2px solid transparent;
   padding:8px 13px; cursor:pointer; color:var(--text-2); border-radius:var(--r) var(--r) 0 0;
 }
 .tab:hover{color:var(--text); background:var(--surface-2)}
-.tab[aria-selected="true"]{color:var(--accent); border-bottom-color:var(--accent); font-weight:600}
+.tab[aria-selected="true"]{color:var(--text); border-bottom:2px solid var(--accent); font-weight:700; background:var(--surface-2)}
 
 /* ---- coverage strip ---- */
-.strip{border-top:1px solid var(--line); background:var(--surface-2)}
+.strip{border-top:1px solid var(--line-2); background:var(--surface-2)}
 .strip-inner{display:flex; gap:0; flex-wrap:wrap; padding-block:0}
 .stat{
   padding:9px 18px 9px 0; margin-right:18px; border-right:1px solid var(--line);
   display:flex; align-items:baseline; gap:7px; min-width:0;
 }
 .stat:last-child{border-right:0; margin-right:0}
-.stat b{font-family:var(--mono); font-size:16px; font-weight:600; font-variant-numeric:tabular-nums}
+.stat b{font-family:var(--ui); font-size:19px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--text)}
 .stat span{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-3)}
 .stat.is-warn b{color:var(--warn)} .stat.is-crit b{color:var(--crit)} .stat.is-good b{color:var(--good)}
 
 /* ---- generic bits ---- */
 .view{padding-block:26px 64px}
 .btn{
-  font-family:var(--mono); font-size:11.5px; letter-spacing:.07em; text-transform:uppercase;
-  background:var(--surface); border:1px solid var(--line-2); color:var(--text);
-  padding:8px 13px; border-radius:var(--r); cursor:pointer;
+  font-family:var(--ui); font-size:15px; font-variant-caps:all-small-caps; letter-spacing:.04em;
+  font-weight:600; background:var(--surface); border:1.5px solid var(--text); color:var(--text);
+  padding:6px 14px; border-radius:0; cursor:pointer;
 }
 .btn:hover{border-color:var(--text-3); background:var(--surface-2)}
-.btn-primary{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600}
-.btn-primary:hover{background:var(--accent-2); border-color:var(--accent-2)}
-.btn-ghost{border-color:transparent; background:none; color:var(--text-2)}
+.btn-primary{background:var(--text); border-color:var(--text); color:var(--surface); font-weight:700}
+.btn-primary:hover{background:var(--accent); border-color:var(--accent); color:#FFF}
+.btn-ghost{border-color:transparent; background:none; color:var(--text-2); font-weight:500}
 .btn-ghost:hover{background:var(--surface-2); color:var(--text)}
 .btn-danger{color:var(--crit); border-color:var(--line-2)}
 .btn-danger:hover{background:var(--crit-soft); border-color:var(--crit)}
 .btn-sm{padding:5px 9px; font-size:10.5px}
 
 .chip{
-  display:inline-flex; align-items:center; gap:5px; font-family:var(--mono);
-  font-size:10px; letter-spacing:.07em; text-transform:uppercase; padding:3px 7px;
-  border-radius:2px; border:1px solid var(--line-2); color:var(--text-2); white-space:nowrap;
+  display:inline-flex; align-items:center; gap:5px; font-family:var(--ui);
+  font-size:13.5px; font-variant-caps:all-small-caps; letter-spacing:.04em; font-weight:600;
+  padding:0 6px; border-radius:0; border:1px solid var(--line-2);
+  color:var(--text-2); white-space:nowrap; line-height:1.55;
 }
+.chip-consider{color:var(--accent); border:1.5px solid var(--accent); background:transparent}
 .chip-good{color:var(--good); border-color:var(--good); background:var(--good-soft)}
 .chip-warn{color:var(--warn); border-color:var(--warn); background:var(--warn-soft)}
 .chip-crit{color:var(--crit); border-color:var(--crit); background:var(--crit-soft)}
@@ -140,17 +154,18 @@ a{color:var(--accent)}
 .field{display:flex; flex-direction:column; gap:5px; min-width:0}
 .field > label{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-3)}
 .inp, select.inp, textarea.inp{
-  background:var(--surface); border:1px solid var(--line); border-radius:var(--r);
-  padding:7px 9px; width:100%; font-size:14px;
+  background:var(--surface); border:0; border-bottom:1.5px solid var(--line-2); border-radius:0;
+  padding:6px 4px; width:100%; font-size:15px; font-family:var(--ui);
 }
-.inp:focus{border-color:var(--accent); outline:none}
+textarea.inp, select.inp{border:1.5px solid var(--line-2); padding:6px 8px}
+.inp:focus{border-color:var(--accent); outline:none; background:var(--accent-soft)}
 textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
 .hint{font-size:12px; color:var(--text-3); line-height:1.45}
 
 .banner{
   display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap;
-  border:1px solid var(--brass); border-left:3px solid var(--brass);
-  background:var(--brass-soft); padding:12px 14px; border-radius:var(--r); margin-bottom:22px;
+  border:1px solid var(--line-2); border-left:4px solid var(--text);
+  background:var(--surface-2); padding:12px 15px; border-radius:0; margin-bottom:22px;
 }
 .banner p{margin:0; font-size:13.5px; color:var(--text-2); flex:1 1 300px}
 .banner strong{color:var(--text)}
@@ -162,53 +177,71 @@ textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
   transition:background .08s linear;
 }
 .fader[data-value="0"] .seg{opacity:.6}
-.fader .seg.on{background:var(--brass-2); border-color:var(--brass)}
+.fader .seg.on{background:var(--text-2); border-color:var(--text)}
 .fader:hover .seg{border-color:var(--line-2)}
-.score-read{font-family:var(--mono); font-size:13px; font-weight:600; font-variant-numeric:tabular-nums; min-width:20px; color:var(--text)}
+.score-read{font-family:var(--ui); font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; min-width:20px; color:var(--text)}
 .score-read.none{color:var(--text-3); font-weight:400}
 .rate{display:flex; align-items:center; gap:9px}
 
 /* ---- verdict: consider / undecided / pass ---- */
-.verdict{display:inline-flex; border:1px solid var(--line); border-radius:2px; overflow:hidden; background:var(--surface); flex:0 0 auto}
+.verdict{display:inline-flex; gap:6px; border:0; background:none; flex:0 0 auto}
 .verdict button{
-  font-family:var(--mono); font-size:10px; letter-spacing:.06em; text-transform:uppercase;
-  background:none; border:0; border-left:1px solid var(--line); padding:5px 9px;
-  cursor:pointer; color:var(--text-3); line-height:1.5;
+  font-family:var(--ui); font-size:14px; font-variant-caps:all-small-caps; letter-spacing:.04em;
+  font-weight:600; background:var(--surface); border:1.5px solid var(--line-2);
+  padding:2px 10px; cursor:pointer; color:var(--text-2); line-height:1.6; border-radius:0;
 }
-.verdict button:first-child{border-left:0}
-.verdict button:hover{background:var(--surface-2); color:var(--text)}
-.verdict button[aria-pressed="true"]{font-weight:600}
-.verdict button.consider[aria-pressed="true"]{background:var(--brass); color:#fff}
-.verdict button.undecided[aria-pressed="true"]{background:var(--surface-3); color:var(--text)}
-.verdict button.pass[aria-pressed="true"]{background:var(--text-3); color:var(--surface)}
-.verdict.compact button{width:32px; padding:5px 0; text-align:center; font-size:12px; line-height:1.25}
+.verdict button:hover{border-color:var(--text); color:var(--text)}
+.verdict button[aria-pressed="true"]{font-weight:700}
+.verdict button.consider[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:#FFF}
+.verdict button.undecided[aria-pressed="true"]{background:var(--surface-3); border-color:var(--text-2); color:var(--text)}
+/* Pass is recorded, never announced: it reads as a completed line, not a badge. */
+.verdict button.pass[aria-pressed="true"]{background:transparent; border-color:var(--line-2); color:var(--text-3); text-decoration:line-through}
+.verdict.compact button{width:30px; height:26px; padding:0; text-align:center; font-size:15px; line-height:1}
 .legend{display:flex; gap:14px; flex-wrap:wrap; font-family:var(--mono); font-size:10px;
   letter-spacing:.07em; text-transform:uppercase; color:var(--text-3); margin-bottom:10px}
 .legend b{color:var(--brass); font-size:12px}
 .optional{font-style:normal; text-transform:none; letter-spacing:0; color:var(--text-3); font-size:11px}
 
 /* ---- ledger ---- */
-.toolbar{display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-bottom:16px}
-.toolbar .field{flex:0 1 170px}
+.toolbar{display:flex; gap:12px 14px; align-items:flex-end; flex-wrap:wrap; margin-bottom:18px}
+.toolbar .field{flex:0 1 160px}
+.toolbar .field:has(.seg){flex:0 0 auto}
 .toolbar .spacer{flex:1 1 auto}
-.ledger{border:1px solid var(--line); border-radius:var(--r); overflow:hidden; background:var(--surface)}
+.toolbar .actions{display:flex; gap:9px; flex-wrap:wrap}
+.ledger{border:1.5px solid var(--text); border-radius:0; overflow:hidden; background:var(--surface)}
 .lhead, .lrow{
   display:grid; grid-template-columns:84px minmax(0,1fr) 122px 116px 120px minmax(0,138px);
   gap:14px; align-items:center; padding:11px 16px;
 }
-.lhead{
-  background:var(--surface-2); border-bottom:1px solid var(--line);
-  font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-3);
-}
+.lhead{background:var(--surface-2); border-bottom:1.5px solid var(--text)}
 .lrow{border-bottom:1px solid var(--line); text-align:left; width:100%; background:none; border-left:0; border-right:0; border-top:0; cursor:pointer; font:inherit; color:inherit}
 .lrow:last-child{border-bottom:0}
-.lrow:hover{background:var(--accent-soft)}
-.lrow .title{font-family:var(--display); font-size:18px; font-weight:600; letter-spacing:-.01em; line-height:1.2}
+.lrow:hover{background:var(--surface-2)}
+.lrow .title{font-family:var(--display); font-size:15.5px; font-weight:700; letter-spacing:0; line-height:1.35}
 .lrow .title em{font-style:italic}
 .lrow .sub{font-size:12px; color:var(--text-3); margin-top:2px}
-.lrow .seen{font-family:var(--mono); font-size:12px; color:var(--text-2); font-variant-numeric:tabular-nums}
-.lrow .seen small{display:block; font-size:10px; color:var(--text-3); letter-spacing:.04em}
+.lrow .seen{font-family:var(--ui); font-size:14px; color:var(--text-2); font-variant-numeric:tabular-nums}
+.lrow .seen small{display:block; font-size:12.5px; color:var(--text-3)}
 .flags{display:flex; gap:4px; flex-wrap:wrap}
+.awards{display:flex; gap:5px; flex-wrap:wrap}
+.award{
+  font-family:var(--ui); font-size:13.5px; font-variant-caps:all-small-caps; font-weight:600;
+  letter-spacing:.03em; line-height:1.5; color:var(--accent);
+  border:1px solid var(--accent); padding:0 6px; white-space:nowrap;
+}
+.awards-none{font-family:var(--ui); font-size:14px; color:var(--text-3); font-style:italic}
+
+/* seen / not seen, the filter that actually gets used */
+.seg{display:inline-flex; border:1.5px solid var(--text)}
+.seg-b{
+  font-family:var(--ui); font-size:15px; font-variant-caps:all-small-caps; font-weight:600;
+  letter-spacing:.03em; background:var(--surface); border:0; border-left:1px solid var(--line-2);
+  padding:7px 13px; cursor:pointer; color:var(--text-2); white-space:nowrap; line-height:1.2;
+}
+.seg-b:first-child{border-left:0}
+.seg-b:hover{background:var(--surface-2); color:var(--text)}
+.seg-b[aria-pressed="true"]{background:var(--text); color:var(--surface); font-weight:700}
+.seg-n{font-variant-numeric:tabular-nums; opacity:.75; font-size:13px}
 .counts{font-family:var(--mono); font-size:12px; color:var(--text-2); font-variant-numeric:tabular-nums}
 .counts small{color:var(--text-3)}
 .empty{padding:46px 20px; text-align:center; color:var(--text-3); background:var(--surface)}
@@ -217,15 +250,15 @@ textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
   .lhead{display:none}
   .lrow{grid-template-columns:1fr auto; gap:8px 12px; padding:13px 14px; align-items:start}
   .lrow .c-seen{order:1} .lrow .c-title{order:0; grid-column:1/-1}
-  .lrow .c-type{order:2} .lrow .c-rate{order:3; grid-column:1/-1}
-  .lrow .c-counts{order:4} .lrow .c-flags{order:5; grid-column:1/-1}
+  .lrow .c-type{order:2} .lrow .c-awards{order:3; grid-column:1/-1}
+  .lrow .c-flags{order:4; grid-column:1/-1}
 }
 
 /* ---- section heads ---- */
 .sec{margin-top:34px}
 .sec:first-child{margin-top:0}
 .sec-head{display:flex; align-items:baseline; gap:12px; padding-bottom:8px; border-bottom:1px solid var(--line-2); margin-bottom:14px; flex-wrap:wrap}
-.sec-head h2{font-family:var(--display); font-size:23px; letter-spacing:-.01em}
+.sec-head h2{font-family:var(--display); font-size:19px; font-weight:700; letter-spacing:0}
 .sec-head .eyebrow{margin-left:auto}
 
 /* ---- sheet (assessment) ---- */
@@ -239,8 +272,8 @@ textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
 .sheet-body{padding:22px 20px 40px}
 .grid2{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px}
 .grid3{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px}
-.block{border:1px solid var(--line); background:var(--surface); border-radius:var(--r); padding:16px; margin-top:18px}
-.block > h3{font-family:var(--display); font-size:19px; margin-bottom:4px}
+.block{border:1px solid var(--line-2); background:var(--surface); border-radius:0; padding:16px; margin-top:18px}
+.block > h3{font-family:var(--display); font-size:17px; font-weight:700; margin-bottom:5px}
 .block > .hint{margin-bottom:14px}
 .craft-row{display:grid; grid-template-columns:128px minmax(0,1fr) 106px 92px minmax(0,1.05fr); gap:10px; align-items:center; padding:8px 0; border-top:1px solid var(--line)}
 .craft-head{border-top:0; padding-bottom:4px; font-family:var(--mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-3)}
@@ -262,38 +295,38 @@ textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
 .x:hover{color:var(--crit); border-color:var(--line-2); background:var(--crit-soft)}
 
 /* ---- ballot ---- */
-.cat{border:1px solid var(--line); border-radius:var(--r); background:var(--surface); margin-bottom:7px; overflow:hidden}
+.cat{border:1px solid var(--line-2); border-radius:0; background:var(--surface); margin-bottom:6px; overflow:hidden}
 .cat-head{display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:12px; align-items:center; width:100%; text-align:left; background:none; border:0; padding:12px 15px; cursor:pointer; font:inherit; color:inherit}
 .cat-head:hover{background:var(--surface-2)}
-.cat-name{font-family:var(--display); font-size:17.5px; font-weight:600; line-height:1.25}
+.cat-name{font-family:var(--display); font-size:15px; font-weight:700; line-height:1.35}
 .cat-meta{display:flex; gap:6px; align-items:center; flex-wrap:wrap}
-.cat-count{font-family:var(--mono); font-size:12px; color:var(--text-2); font-variant-numeric:tabular-nums; white-space:nowrap}
-.cat-body{border-top:1px solid var(--line); padding:0 15px 12px}
+.cat-count{font-family:var(--ui); font-size:14px; color:var(--text-2); font-variant-numeric:tabular-nums; white-space:nowrap}
+.cat-body{border-top:1.5px solid var(--text); padding:0 15px 12px}
 .cand{display:grid; grid-template-columns:34px minmax(0,1fr) auto; gap:12px; align-items:start; padding:10px 0; border-bottom:1px solid var(--line)}
 .cand:last-child{border-bottom:0}
-.cand.is-nom{background:linear-gradient(90deg,var(--brass-soft),transparent 70%); margin-inline:-15px; padding-inline:15px}
+.cand.is-nom{background:var(--surface-2); margin-inline:-15px; padding-inline:15px; box-shadow:inset 4px 0 0 var(--accent)}
 .cand.is-pass{opacity:.48}
-.cand-score{font-family:var(--mono); font-size:17px; font-weight:600; font-variant-numeric:tabular-nums; text-align:right; color:var(--brass)}
+.cand-score{font-family:var(--ui); font-size:17px; font-weight:700; font-variant-numeric:tabular-nums; text-align:right; color:var(--text-2)}
 .cand-score.none{color:var(--text-3); font-size:13px; font-weight:400}
-.cand-who{font-weight:600; font-size:15px}
+.cand-who{font-family:var(--display); font-weight:700; font-size:14.5px; line-height:1.4}
 .cand-where{font-size:13px; color:var(--text-2)}
 .cand-where em{font-style:italic}
-.cand-note{font-size:13px; color:var(--text-2); margin-top:4px; border-left:2px solid var(--line-2); padding-left:9px; font-style:italic}
+.cand-note{font-size:14px; color:var(--text-2); margin-top:4px; border-left:2px solid var(--line-2); padding-left:9px; font-style:italic; font-family:var(--display)}
 .cand-acts{display:flex; gap:3px}
-.pick{font-family:var(--mono); font-size:10px; letter-spacing:.06em; text-transform:uppercase; padding:4px 8px; border:1px solid var(--line); background:var(--surface); border-radius:2px; cursor:pointer; color:var(--text-3)}
+.pick{font-family:var(--ui); font-size:14px; font-variant-caps:all-small-caps; letter-spacing:.04em; font-weight:600; padding:2px 10px; border:1.5px solid var(--line-2); background:var(--surface); border-radius:0; cursor:pointer; color:var(--text-2)}
 .pick:hover{border-color:var(--text-3); color:var(--text)}
 .pick[aria-pressed="true"]{font-weight:600}
-.pick.nom[aria-pressed="true"]{background:var(--brass); border-color:var(--brass); color:#fff}
+.pick.nom[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:#FFF; font-weight:700}
 .pick.hold[aria-pressed="true"]{background:var(--accent-soft); border-color:var(--accent); color:var(--accent)}
 .pick.pass[aria-pressed="true"]{background:var(--surface-3); border-color:var(--line-2); color:var(--text-2)}
 .cand-group{display:flex; align-items:baseline; gap:9px; margin:16px 0 0; padding-bottom:5px; border-bottom:1px solid var(--line-2)}
 .cand-group h4{font-family:var(--mono); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-2); font-weight:600}
 .cand-group .n{font-family:var(--mono); font-size:11px; color:var(--text-3); font-variant-numeric:tabular-nums}
-.cand-group.g-consider h4{color:var(--brass)}
+.cand-group.g-consider h4{color:var(--accent)}
 .cand-acts{display:flex; gap:6px; align-items:center; flex-wrap:wrap}
 details.passed{margin-top:16px}
 details.passed > summary{
-  font-family:var(--mono); font-size:10px; letter-spacing:.12em; text-transform:uppercase;
+  font-family:var(--ui); font-size:13.5px; font-variant-caps:all-small-caps; letter-spacing:.03em;
   color:var(--text-3); cursor:pointer; padding:6px 0; border-bottom:1px solid var(--line); list-style:none;
 }
 details.passed > summary::-webkit-details-marker{display:none}
@@ -309,14 +342,14 @@ details.passed > summary:hover{color:var(--text)}
 }
 
 /* ---- report ---- */
-.report{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:clamp(20px,4vw,44px); max-width:840px}
+.report{background:var(--surface); border:1.5px solid var(--text); border-radius:0; padding:clamp(20px,4vw,48px); max-width:820px; background-image:var(--guilloche); background-repeat:no-repeat; background-size:100% 190px}
 .report-head{text-align:center; border-bottom:2px solid var(--text); padding-bottom:18px; margin-bottom:26px}
-.report-head h2{font-family:var(--display); font-size:clamp(26px,5vw,38px); letter-spacing:-.02em; line-height:1.1}
+.report-head h2{font-family:var(--display); font-size:clamp(22px,4vw,31px); font-weight:700; letter-spacing:0; line-height:1.25}
 .report-head .eyebrow{margin-bottom:7px}
 .rgroup{margin-bottom:26px}
-.rgroup > h3{font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); border-bottom:1px solid var(--line); padding-bottom:6px; margin-bottom:12px}
+.rgroup > h3{color:var(--accent); border-bottom:1.5px solid var(--text); padding-bottom:5px; margin-bottom:12px; font-size:15px}
 .rcat{margin-bottom:15px; break-inside:avoid}
-.rcat h4{font-size:13.5px; font-weight:600; margin-bottom:3px}
+.rcat h4{font-family:var(--display); font-size:14px; font-weight:700; margin-bottom:4px}
 .rcat ol{margin:0; padding-left:22px}
 .rcat li{font-size:14px; padding:1.5px 0}
 .rcat li em{font-style:italic; color:var(--text-2)}
@@ -536,6 +569,9 @@ const CATEGORIES = [
   {id:"snd-m", group:"Design — Musical", name:"Best Sound Design of a Musical",  kind:"craft", craft:"sound",    form:"musical"},
 ];
 const CAT_BY_ID = Object.fromEntries(CATEGORIES.map(c => [c.id, c]));
+/* "Best Revival of a Play" reads as "Revival" beside a row that already says
+   which it is. The play/musical split is carried by the production, not the label. */
+const shortName = cat => cat.name.replace(/^Best /, "").replace(/ (of|in) a (Play|Musical)$/, "");
 const GROUPS = [...new Set(CATEGORIES.map(c => c.group))];
 
 /* ============================================================
@@ -1192,6 +1228,19 @@ function rank(list){
     (b.score - a.score) ||
     a.who.localeCompare(b.who));
 }
+/* Every award each production is currently being considered for, in one pass. */
+function awardsByShow(){
+  const map = new Map();
+  for (const cat of CATEGORIES){
+    for (const c of candidatesFor(cat)){
+      if (c.status !== "consider") continue;
+      if (!map.has(c.showId)) map.set(c.showId, []);
+      map.get(c.showId).push(cat);
+    }
+  }
+  return map;
+}
+
 /* Split a category's candidates into the three lists the ballot shows. */
 function groupByStatus(list){
   const g = {consider:[], "":[], pass:[]};
@@ -1586,10 +1635,11 @@ function paintVerdict(group, value){
   group.querySelectorAll("button").forEach(b =>
     b.setAttribute("aria-pressed", String(b.dataset.val === value)));
 }
+/* Pass is a private note to yourself that you gave something thought. It is
+   deliberately not announced anywhere: only consideration is reported. */
 function statusChip(status){
-  if (status === "consider") return '<span class="chip" style="color:var(--brass); border-color:var(--brass); background:var(--brass-soft)">Consider</span>';
-  if (status === "pass") return '<span class="chip chip-quiet">Pass</span>';
-  return '<span class="chip chip-quiet">Undecided</span>';
+  return status === "consider"
+    ? '<span class="chip chip-consider">Under consideration</span>' : "";
 }
 function faderStatic(value){
   let segs = "";
@@ -1670,6 +1720,7 @@ function paintStrip(){
    ============================================================ */
 function visibleShows(){
   let list = shows.filter(matchesQuery);
+  if (filter === "seen")       list = list.filter(s => s.seen);
   if (filter === "unseen")     list = list.filter(s => !s.seen);
   if (filter === "unmarked")    list = list.filter(s => s.seen && !assessed(s));
   if (filter === "considering") list = list.filter(s => marksOn(s, "consider") > 0);
@@ -1898,6 +1949,7 @@ function renderRecovery(){
 function renderSeason(){
   const c = coverage();
   const list = visibleShows();
+  const awardsFor = awardsByShow();
   const revisits = shows.filter(s => s.revisit || stale(s));
   let html = "";
 
@@ -1922,11 +1974,17 @@ function renderSeason(){
   }
 
   html += '<div class="toolbar">' +
-    '<div class="field"><label for="fFilter">Show me</label><select class="inp" id="fFilter" data-act="set-filter">' +
-      [["all","Every production (" + shows.length + ")"],
-       ["unseen","Not yet seen (" + c.notSeen + ")"],
+    '<div class="field"><label>Show me</label><div class="seg" role="group" aria-label="Filter by whether you have seen it">' +
+      [["all", "All", shows.length],
+       ["seen", "Seen", c.seen],
+       ["unseen", "Not seen", c.notSeen]]
+      .map(([v, l, n]) => '<button class="seg-b" data-act="set-filter" data-v="' + v + '" aria-pressed="' +
+        (filter === v) + '">' + l + ' <span class="seg-n">' + n + "</span></button>").join("") +
+    "</div></div>" +
+    '<div class="field"><label for="fFilter">Also</label><select class="inp" id="fFilter" data-act="set-filter-sel">' +
+      [["", "No further filter"],
        ["unmarked","Seen, nothing marked (" + c.unmarked + ")"],
-       ["considering","Something marked consider"],
+       ["considering","Something under consideration"],
        ["revisit","Worth a second look (" + c.revisit + ")"],
        ["recused","Recused (" + c.recused + ")"]]
       .map(([v, l]) => '<option value="' + v + '"' + (filter === v ? " selected" : "") + ">" + esc(l) + "</option>").join("") +
@@ -1941,8 +1999,10 @@ function renderSeason(){
       '<input class="inp" id="fSearch" type="search" value="' + esc(query) + '" data-act="set-query" ' +
       'placeholder="Title, theatre, designer, performer" autocomplete="off"></div>' +
     '<div class="spacer"></div>' +
-    '<button class="btn btn-primary" data-act="quick-open">I just saw a show</button>' +
-    '<button class="btn" data-act="new-show">+ Add a production</button>' +
+    '<div class="actions">' +
+      '<button class="btn btn-primary" data-act="quick-open">I just saw a show</button>' +
+      '<button class="btn" data-act="new-show">+ Add a production</button>' +
+    "</div>" +
   "</div>";
   if (query){
     html += '<p class="hint" style="margin:-6px 0 14px">' + list.length + " of " + shows.length +
@@ -1962,17 +2022,15 @@ function renderSeason(){
   }
 
   html += '<div class="ledger"><div class="lhead">' +
-    "<div>Seen</div><div>Production</div><div>Category</div><div>Verdict</div><div>Marked</div><div>Flags</div></div>";
+    "<div>Seen</div><div>Production</div><div>Type</div><div>Under consideration for</div><div>Flags</div></div>";
 
   if (!list.length){
     html += '<div class="empty"><h3>Nothing here yet</h3><p>Log a production the night you see it — the note you write in the lobby is the one you will trust in April.</p></div>';
   } else {
     for (const s of list){
       const d = daysSince(s.seen);
-      const considerN = marksOn(s, "consider");
-      const openN = marksOn(s, "");
+      const awards = awardsFor.get(s.id) || [];
       const flags = [];
-      if (s.seen && considerN) flags.push('<span class="chip chip-good">' + considerN + " considered</span>");
       if (!s.eligible) flags.push('<span class="chip chip-quiet">Not eligible</span>');
       if (s.recused) flags.push('<span class="chip chip-accent">Recused</span>');
       if (!s.seen) flags.push('<span class="chip chip-warn">Not seen</span>');
@@ -1989,10 +2047,9 @@ function renderSeason(){
         '<div class="c-title"><div class="title"><em>' + esc(titleOf(s)) + "</em></div>" +
           '<div class="sub">' + [esc(s.author), esc(s.theatre), s.opened ? "opens " + fmtDate(s.opened) : "date TBA"].filter(Boolean).join(" &middot; ") + "</div></div>" +
         '<div class="c-type"><span class="chip">' + TYPES[s.type].label + "</span></div>" +
-        '<div class="c-rate">' + statusChip(s.status) + (s.overall ? ' <span class="counts">' + s.overall + "</span>" : "") + "</div>" +
-        '<div class="c-counts counts">' + (s.seen
-            ? considerN + " <small>consider</small> &middot; " + openN + " <small>open</small>"
-            : '<span style="color:var(--text-3)">—</span>') + "</div>" +
+        '<div class="c-awards">' + (awards.length
+            ? '<div class="awards">' + awards.map(c => '<span class="award">' + esc(shortName(c)) + "</span>").join("") + "</div>"
+            : '<span class="awards-none">' + (s.seen ? "nothing yet" : "not seen") + "</span>") + "</div>" +
         '<div class="c-flags flags">' + (flags.join("") || '<span class="chip chip-quiet">All open</span>') + "</div>" +
       "</button>";
     }
@@ -2086,7 +2143,7 @@ function renderSheet(){
 
     '<div class="block"><h3>Elements</h3>' +
       '<div class="legend"><span><b>\u2713</b> consider</span><span><b>?</b> undecided</span><span><b>\u2715</b> pass</span>' +
-        '<span class="optional">Everything starts undecided. Marking Consider adds it to that category\u2019s list on the ballot.</span></div>' +
+        '<span class="optional">Everything starts undecided. Consider adds it to that category\u2019s list; pass simply records that you thought about it.</span></div>' +
       '<p class="hint">Name the credit as billed — the credit is what appears on the ballot, not the department.' +
       (musical ? " Orchestrations are open to revivals; book and original score are not, unless newly written for this production." : "") + "</p>" +
       crafts +
@@ -2148,10 +2205,10 @@ function renderBallot(){
   const recused = shows.filter(s => s.recused);
   const early = seasonEarly();
   let html = '<div class="banner" style="border-color:var(--line-2); border-left-color:var(--brass); background:var(--surface)">' +
-    "<p>Every production you have seen appears in the categories it is eligible for. Mark an element " +
-    "<strong>consider</strong> and it moves to the top of that category\u2019s list; <strong>pass</strong> files it away; " +
-    "everything else stays undecided. Work the considering list down, then <strong>nominate</strong> to fill the slate. " +
-    "Scores are optional \u2014 where you gave one it orders the list, and a dot means you did not." +
+    "<p>Every production you have seen appears in the categories it is eligible for. Marking an element " +
+    "<strong>consider</strong> is what builds that category\u2019s list; work the list down, then " +
+    "<strong>nominate</strong> to fill the slate. <strong>Pass</strong> is only a note to yourself that you gave " +
+    "something thought \u2014 it is recorded nowhere else in the ledger. Scores stay optional." +
     (recused.length ? " You are recused from " + recused.map(s => italic(titleOf(s))).join(", ") + ", so they appear nowhere below." : "") +
     "</p></div>";
   if (!shows.some(s => s.seen)){
@@ -2179,8 +2236,8 @@ function renderBallot(){
         '<button class="cat-head" data-act="toggle-cat" data-id="' + cat.id + '" aria-expanded="' + open + '">' +
           '<span class="cat-name">' + esc(cat.name) + "</span>" +
           '<span class="cat-meta">' + (h.label ? '<span class="chip ' + chipCls + '">' + esc(h.label) + "</span>" : "") +
-            '<span class="cat-count">' + h.considering + " considered &middot; " + h.noms + "/" + h.target +
-              " nominated &middot; " + h.cands.length + " eligible</span></span>" +
+            '<span class="cat-count">' + h.considering + " under consideration &middot; " +
+              h.noms + "/" + h.target + " nominated</span></span>" +
           '<span class="eyebrow">' + (open ? "Close" : "Open") + "</span>" +
         "</button>";
 
@@ -2227,7 +2284,7 @@ function renderBallot(){
           html += group("consider", applyOrder(cat.id, g.consider));
           html += group("", g[""]);
           if (g.pass.length){
-            html += '<details class="passed"><summary>' + g.pass.length + " passed</summary>" +
+            html += '<details class="passed"><summary>' + g.pass.length + " already considered and set aside</summary>" +
               g.pass.map(row).join("") + "</details>";
           }
         }
@@ -2619,7 +2676,8 @@ document.addEventListener("click", async e => {
     return;
   }
   if (act === "tab"){ tab = el.dataset.tab; render(); window.scrollTo({top:0, behavior:"instant"}); return; }
-  if (act === "set-filter"){ filter = el.value; render(); return; }
+  if (act === "set-filter"){ filter = el.dataset.v; render(); return; }
+  if (act === "set-filter-sel"){ filter = el.value || "all"; render(); return; }
   if (act === "set-sort"){ sortBy = el.value; render(); return; }
 
   if (act === "new-show"){
