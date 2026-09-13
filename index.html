@@ -248,7 +248,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 textarea.inp, select.inp{border:1px solid var(--line-2); padding:10px 12px}
 .inp:focus{border-color:var(--accent); background:var(--ice)}
 textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
-.hint{font-size:12px; color:var(--text-3); line-height:1.45}
+.hint{font-size:13px; color:var(--text-3); line-height:1.5}
 
 .banner{
   display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap;
@@ -321,9 +321,8 @@ textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
 .lrow{transition:background .18s var(--ease)}
 .lrow:hover{background:var(--ice)}
 .lrow .title{font-family:var(--display); font-size:21px; font-weight:500; letter-spacing:.005em; line-height:1.2; text-transform:uppercase}
-.lrow .sub{font-size:14.5px; color:var(--text-3); margin-top:5px}
 .lrow .title em{font-style:normal}
-.lrow .sub{font-size:12px; color:var(--text-3); margin-top:2px}
+.lrow .sub{font-size:13.5px; color:var(--text-3); margin-top:4px}
 .lrow .seen{font-family:var(--ui); font-size:14px; color:var(--text-2); font-variant-numeric:tabular-nums}
 .lrow .seen small{display:block; font-size:12.5px; color:var(--text-3)}
 .flags{display:flex; gap:4px; flex-wrap:wrap}
@@ -353,11 +352,16 @@ textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
 }
 
 /* ---- section heads ---- */
-.sec{margin-top:54px}
+.sec{margin-top:36px}
 .sec:first-child{margin-top:0}
-.sec-head{display:flex; align-items:baseline; gap:16px; padding-bottom:12px; border-bottom:2px solid var(--text); margin-bottom:20px; flex-wrap:wrap}
-.sec-head h2{font-family:var(--display); font-size:27px; font-weight:500; letter-spacing:.03em; text-transform:uppercase}
+.sec-head{display:flex; align-items:baseline; gap:16px; padding-bottom:9px; border-bottom:2px solid var(--text); margin-bottom:14px; flex-wrap:wrap}
+.sec-head h2{font-family:var(--display); font-size:23px; font-weight:500; letter-spacing:.03em; text-transform:uppercase}
 .sec-head .eyebrow{margin-left:auto}
+@media (min-width:900px){
+  .sec{margin-top:54px}
+  .sec-head{padding-bottom:12px; margin-bottom:20px}
+  .sec-head h2{font-size:27px}
+}
 
 /* ---- sheet (assessment) ---- */
 .sheet-wrap{position:fixed; inset:0; z-index:60; display:flex; align-items:flex-start; justify-content:center; overflow-y:auto; background:rgba(20,14,15,.5); padding:0 0 40px}
@@ -382,8 +386,9 @@ textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
 .craft-second .c-note{flex:1 1 220px}
 .craft-second .fader .seg, .p-second .fader .seg{width:6px}
 .craft-row.off{opacity:.55}
-.perf-row{display:grid; grid-template-columns:1fr 1fr; gap:10px 12px; align-items:center; padding:16px 0; border-top:1px solid var(--line)}
-.perf-row .p-name{grid-column:1/-1}
+.perf-row{display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:end; padding:16px 0; border-top:1px solid var(--line)}
+.perf-row .pf-name{grid-column:1/-1}
+.perf-row > .x{align-self:center; justify-self:end}
 .p-second{grid-column:1/-1; display:flex; gap:12px; align-items:center; flex-wrap:wrap}
 .p-second .p-note{flex:1 1 200px}
 
@@ -392,7 +397,7 @@ textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
   .craft-name{grid-row:1/span 2}
   .craft-row .c-credit, .craft-second{grid-column:2}
   .perf-row{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) 120px 116px 46px; gap:10px 12px; padding:12px 0}
-  .perf-row .p-name{grid-column:auto}
+  .perf-row .pf-name{grid-column:auto}
 }
 .x{background:none; border:1px solid transparent; color:var(--text-3); cursor:pointer; border-radius:var(--r); width:28px; height:28px; line-height:1}
 .x:hover{color:var(--crit); border-color:var(--line-2); background:var(--crit-soft)}
@@ -676,6 +681,7 @@ let ballot = {picks:{}};        // picks[catId][candidateKey] = "nom"|"hold"|"pa
 let tab = "schedule";
 let pendingFocus = false;
 let openShowId = null;
+let sheetOpener = null;   // CSS selector for the element to refocus when the sheet closes
 let openCats = new Set();
 let filter = "all", sortBy = "opened";   // a season not yet under way reads as a schedule
 let query = "";                          // free-text search across the whole ledger
@@ -2205,7 +2211,7 @@ function renderIntake(){
     '<div class="choice" style="margin-top:18px">' +
       '<div class="grid2">' +
         field("title", "Production", d.title) +
-        field("type", "Counts as", d.type || "new-play", "select") +
+        field("type", "Production category", d.type || "new-play", "select") +
         field("author", "Written by", d.author) +
         field("theatre", "Theatre", d.theatre) +
         field("opened", "Opening night", d.opened, "date") +
@@ -2633,6 +2639,7 @@ function renderSheet(){
   if (!s){ wrap.hidden = true; wrap.innerHTML = ""; document.body.style.overflow = ""; return; }
   const form = formOf(s);
   const f = (k) => "show:" + s.id + ":" + k;
+  const today = new Date().toISOString().slice(0, 10);
 
   const crafts = CRAFTS.filter(c => c.form === "any" || c.form === form).map(c => {
     const v = s.crafts[c.key];
@@ -2651,13 +2658,17 @@ function renderSheet(){
 
   const perfs = s.performances.map(p => {
     const pf = (k) => f("perf:" + p.id + ":" + k);
-    const sel = (key, opts) => '<select class="inp" data-field="' + pf(key) + '" aria-label="' + key + '">' +
+    const sel = (id, key, opts) => '<select class="inp" id="' + id + '" data-field="' + pf(key) + '">' +
       opts.map(([v, l]) => '<option value="' + v + '"' + (p[key] === v ? " selected" : "") + ">" + l + "</option>").join("") + "</select>";
     return '<div class="perf-row">' +
-      '<input class="inp p-name" placeholder="Performer" value="' + esc(p.name) + '" data-field="' + pf("name") + '" aria-label="Performer name">' +
-      '<input class="inp" placeholder="Role" value="' + esc(p.role) + '" data-field="' + pf("role") + '" aria-label="Role">' +
-      sel("billing", [["unset","Not placed"],["leading","Leading"],["featured","Featured"]]) +
-      sel("division", [["unset","Not placed"],["actor","Actor"],["actress","Actress"]]) +
+      '<div class="field pf-name"><label for="pn-' + p.id + '">Performer</label>' +
+        '<input class="inp p-name" id="pn-' + p.id + '" placeholder="Name as billed" value="' + esc(p.name) + '" data-field="' + pf("name") + '"></div>' +
+      '<div class="field"><label for="pr-' + p.id + '">Role</label>' +
+        '<input class="inp" id="pr-' + p.id + '" placeholder="Role" value="' + esc(p.role) + '" data-field="' + pf("role") + '"></div>' +
+      '<div class="field"><label for="pb-' + p.id + '">Billing</label>' +
+        sel("pb-" + p.id, "billing", [["unset","Not placed"],["leading","Leading"],["featured","Featured"]]) + "</div>" +
+      '<div class="field"><label for="pv-' + p.id + '">Division</label>' +
+        sel("pv-" + p.id, "division", [["unset","Not placed"],["actor","Actor"],["actress","Actress"]]) + "</div>" +
       '<button class="x" data-act="del-perf" data-id="' + s.id + '" data-pid="' + p.id + '" aria-label="Remove ' + esc(p.name || "performer") + '">&times;</button>' +
       '<div class="p-second">' +
         verdictHTML(s.id + ":perf:" + p.id, p.status, (p.name || "this performance") + " in " + titleOf(s), false) +
@@ -2683,36 +2694,35 @@ function renderSheet(){
     "</div>" +
     '<div class="sheet-body">' +
 
-    '<div class="grid2">' +
-      '<div class="field" style="grid-column:1/-1"><label for="t-' + s.id + '">Production</label>' +
-        '<input class="inp" id="t-' + s.id + '" value="' + esc(s.title) + '" data-field="' + f("title") + '" placeholder="Title as billed" style="font-family:var(--display); font-size:21px; padding:8px 10px"></div>' +
-      '<div class="field"><label for="ty-' + s.id + '">Counts as</label><select class="inp" id="ty-' + s.id + '" data-field="' + f("type") + '" data-rerender="1">' +
-        Object.entries(TYPES).map(([v, t]) => '<option value="' + v + '"' + (s.type === v ? " selected" : "") + ">" + t.label + "</option>").join("") + "</select></div>" +
-      '<div class="field"><label for="au-' + s.id + '">Written by</label><input class="inp" id="au-' + s.id + '" value="' + esc(s.author) + '" data-field="' + f("author") + '" placeholder="Author, or book and score credits"></div>' +
-      '<div class="field"><label for="th-' + s.id + '">Theatre</label><input class="inp" id="th-' + s.id + '" value="' + esc(s.theatre) + '" data-field="' + f("theatre") + '"></div>' +
-      '<div class="field"><label for="op-' + s.id + '">Opening night</label><input class="inp mono" id="op-' + s.id + '" type="date" value="' + esc(s.opened) + '" data-field="' + f("opened") + '"></div>' +
-      '<div class="field"><label for="cl-' + s.id + '">Closing night</label><input class="inp mono" id="cl-' + s.id + '" type="date" value="' + esc(s.closed) + '" data-field="' + f("closed") + '"></div>' +
-    "</div>" +
-
-    '<div class="block"><h3>' + (s.seen ? "When you saw it" : "When you are going") + "</h3>" +
+    '<div class="block" style="margin-top:0; border-top:0; padding-top:0"><h3>' + (s.seen ? "When you saw it" : "Attendance") + "</h3>" +
       '<p class="hint">' + (s.seen
         ? "Correct the date below if you saw it on a different night than planned."
-        : "Set a date and it appears in your diary and calendar; say you saw it and the ledger starts asking for a verdict.") + "</p>" +
-      '<div class="grid3">' +
-        '<div class="field"><label for="dt-' + s.id + '">' + (s.seen ? "Date I saw it" : "Booked for") + '</label>' +
-          '<input class="inp" id="dt-' + s.id + '" type="date" value="' + esc(s.seen || s.booked) + '" data-field="' +
-            f(s.seen ? "seen" : "booked") + '" data-rerender="1"></div>' +
-        (s.seen ? "" :
-          '<div class="field"><label for="bt-' + s.id + '">Curtain</label>' +
-            '<input class="inp" id="bt-' + s.id + '" type="time" value="' + esc(s.bookedTime) + '" data-field="' + f("bookedTime") + '" data-rerender="1"></div>') +
-      "</div>" +
-      (s.booked && !s.seen
-        ? '<div class="cal-row">' +
-            '<a class="btn" href="' + esc(googleCalendarUrl(s)) + '" target="_blank" rel="noopener">Add to Google Calendar<span class="arrow" aria-hidden="true">&rarr;</span></a>' +
-            '<button class="btn" data-act="ics" data-id="' + s.id + '">Download .ics</button>' +
-            '<button class="btn btn-primary" data-act="mark-seen" data-id="' + s.id + '">I saw it</button>' +
+        : "Record a viewing the moment you decide to go, or log a past visit straight away — either way, the ledger starts asking for a verdict as soon as a date is in.") + "</p>" +
+      (s.seen
+        ? '<div class="grid3">' +
+            '<div class="field"><label for="dt-' + s.id + '">Date I saw it</label>' +
+              '<input class="inp" id="dt-' + s.id + '" type="date" value="' + esc(s.seen) + '" data-field="' + f("seen") + '" data-rerender="1"></div>' +
           "</div>"
-        : "") +
+        :
+          '<div class="grid3">' +
+            '<div class="field"><label for="rv-' + s.id + '">Record a viewing</label>' +
+              '<input class="inp" id="rv-' + s.id + '" type="date" value="' + esc(s.booked || today) + '"></div>' +
+            '<div class="field" style="justify-content:flex-end">' +
+              '<button class="btn btn-primary" data-act="record-seen" data-id="' + s.id + '">I saw it</button></div>' +
+          "</div>" +
+          '<div class="grid3" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line)">' +
+            '<div class="field"><label for="bk-' + s.id + '">Booked for (optional)</label>' +
+              '<input class="inp" id="bk-' + s.id + '" type="date" value="' + esc(s.booked) + '" data-field="' + f("booked") + '" data-rerender="1"></div>' +
+            '<div class="field"><label for="bt-' + s.id + '">Curtain</label>' +
+              '<input class="inp" id="bt-' + s.id + '" type="time" value="' + esc(s.bookedTime) + '" data-field="' + f("bookedTime") + '" data-rerender="1"></div>' +
+          "</div>" +
+          (s.booked
+            ? '<div class="cal-row">' +
+                '<a class="btn" href="' + esc(googleCalendarUrl(s)) + '" target="_blank" rel="noopener">Add to Google Calendar<span class="arrow" aria-hidden="true">&rarr;</span></a>' +
+                '<button class="btn" data-act="ics" data-id="' + s.id + '">Download calendar file (.ics)</button>' +
+              "</div>"
+            : "")
+      ) +
     "</div>" +
 
     '<div class="block"><h3>Overall Production</h3>' +
@@ -2726,6 +2736,19 @@ function renderSheet(){
         '<input class="inp" id="v-' + s.id + '" value="' + esc(s.verdict) + '" data-field="' + f("verdict") + '" placeholder="What this production is, and whether it works"></div>' +
       '<div class="field"><label for="m-' + s.id + '">What will still be in your head in April</label>' +
         '<textarea class="inp" id="m-' + s.id + '" data-field="' + f("memory") + '" placeholder="The image, the sound, the two minutes you would describe to someone who was not there">' + esc(s.memory) + "</textarea></div>" +
+    "</div>" +
+
+    '<div class="block"><h3>Production details</h3>' +
+      '<div class="grid2">' +
+        '<div class="field" style="grid-column:1/-1"><label for="t-' + s.id + '">Production</label>' +
+          '<input class="inp" id="t-' + s.id + '" value="' + esc(s.title) + '" data-field="' + f("title") + '" placeholder="Title as billed" style="font-family:var(--display); font-size:21px; padding:8px 10px"></div>' +
+        '<div class="field"><label for="ty-' + s.id + '">Production category</label><select class="inp" id="ty-' + s.id + '" data-field="' + f("type") + '" data-rerender="1">' +
+          Object.entries(TYPES).map(([v, t]) => '<option value="' + v + '"' + (s.type === v ? " selected" : "") + ">" + t.label + "</option>").join("") + "</select></div>" +
+        '<div class="field"><label for="au-' + s.id + '">Written by</label><input class="inp" id="au-' + s.id + '" value="' + esc(s.author) + '" data-field="' + f("author") + '" placeholder="Author, or book and score credits"></div>' +
+        '<div class="field"><label for="th-' + s.id + '">Theatre</label><input class="inp" id="th-' + s.id + '" value="' + esc(s.theatre) + '" data-field="' + f("theatre") + '"></div>' +
+        '<div class="field"><label for="op-' + s.id + '">Opening night</label><input class="inp mono" id="op-' + s.id + '" type="date" value="' + esc(s.opened) + '" data-field="' + f("opened") + '"></div>' +
+        '<div class="field"><label for="cl-' + s.id + '">Closing night</label><input class="inp mono" id="cl-' + s.id + '" type="date" value="' + esc(s.closed) + '" data-field="' + f("closed") + '"></div>' +
+      "</div>" +
     "</div>" +
 
     '<div class="block"><h3>Elements</h3>' +
@@ -2743,10 +2766,11 @@ function renderSheet(){
       (perfs || '<p class="hint" style="padding:8px 0">No performances recorded yet.</p>') +
       '<button class="btn btn-sm" data-act="add-perf" data-id="' + s.id + '" style="margin-top:12px">+ Add a performance</button>' +
       (s.performances.length ? '<div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--line)">' +
+        '<div class="craft-name" style="margin-bottom:8px">Billing disputes</div>' +
         s.performances.map(p =>
           '<label style="display:inline-flex; gap:6px; align-items:center; font-size:12.5px; margin:0 14px 6px 0">' +
           '<input type="checkbox" data-field="' + f("perf:" + p.id + ":disputed") + '" data-type="bool"' + (p.disputed ? " checked" : "") + ">" +
-          "<span>Billing disputed: " + esc(p.name || "unnamed") + "</span></label>").join("") +
+          "<span>" + esc(p.name || "unnamed") + "</span></label>").join("") +
       "</div>" : "") +
     "</div>" +
 
@@ -2761,6 +2785,32 @@ function renderSheet(){
     const first = wrap.querySelector("input");
     if (first) first.focus();
   }
+}
+
+/* Closing the sheet returns focus to whatever opened it. Every render
+   rebuilds the list via innerHTML, so the original element is gone by the
+   time this runs — sheetOpener is a selector for its replacement instead
+   of a stale node reference. */
+function closeSheet(){
+  openShowId = null;
+  renderSheet(); render();
+  const sel = sheetOpener;
+  sheetOpener = null;
+  const target = sel && document.querySelector(sel);
+  if (target) target.focus();
+  else { const v = $("#view"); if (v) v.focus(); }
+}
+
+/* Keeps Tab cycling inside an open modal instead of reaching the page behind it. */
+function trapTabKey(e, container){
+  if (e.key !== "Tab") return;
+  const focusable = Array.from(container.querySelectorAll(
+    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  )).filter(el => el.offsetParent !== null);
+  if (!focusable.length) return;
+  const first = focusable[0], last = focusable[focusable.length - 1];
+  if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
 }
 
 /* ============================================================
@@ -2780,6 +2830,22 @@ function renderBallot(){
       "the credits are already loaded and waiting, so the night you see it you only score what you saw.</p>" +
       '<button class="btn" data-act="tab" data-tab="season">Open the ledger</button></div>';
   }
+
+  html += '<div class="toolbar no-print">' +
+    '<div class="field" style="flex:1 1 240px"><label for="jumpCat">Jump to a category</label>' +
+      '<select class="inp" id="jumpCat" data-act="jump-cat">' +
+        '<option value="">Choose…</option>' +
+        GROUPS.map(group => '<optgroup label="' + esc(group) + '">' +
+          CATEGORIES.filter(c => c.group === group).map(c => '<option value="' + c.id + '">' + esc(c.name) + "</option>").join("") +
+        "</optgroup>").join("") +
+      "</select></div>" +
+    '<div class="spacer"></div>' +
+    '<div class="actions">' +
+      '<button class="btn" data-act="export-txt">Download the ballot</button>' +
+      '<button class="btn" data-act="export-json">Download a full backup</button>' +
+      '<a class="btn" href="#packet">Meeting packet<span class="arrow" aria-hidden="true">&rarr;</span></a>' +
+    "</div>" +
+  "</div>";
 
   for (const group of GROUPS){
     const cats = CATEGORIES.filter(c => c.group === group);
@@ -2943,11 +3009,15 @@ function renderReport(){
     '<button class="btn" data-act="export-json">Download a full backup</button>' +
     '<button class="btn" data-act="import">Restore from backup</button>' +
     '<button class="btn" data-act="show-snaps">Restore a snapshot</button>' +
-    '<button class="btn" data-act="archive-season">Archive this season</button>' +
-    '<button class="btn btn-ghost" data-act="clear-sample">Start an empty season</button>' +
     '<button class="btn btn-ghost" data-act="print">Print</button>' +
     '<input type="file" id="importFile" accept="application/json,.json" hidden></div>' +
-    '<p class="hint no-print" style="margin-top:10px; max-width:60ch">The ballot download is the plain-text list above. The backup is everything — every score, note and conflict — and is the file to keep.</p>';
+    '<p class="hint no-print" style="margin-top:10px; max-width:60ch">The ballot download is the plain-text list above. The backup is everything — every score, note and conflict — and is the file to keep.</p>' +
+    '<div class="exports no-print" style="margin-top:22px; padding-top:16px; border-top:1px solid var(--line-2)">' +
+      '<span class="eyebrow" style="flex-basis:100%; margin:0 0 2px">Season management</span>' +
+      '<button class="btn" data-act="archive-season">Archive this season</button>' +
+      '<button class="btn btn-ghost" data-act="clear-sample">Start an empty season</button>' +
+    "</div>" +
+    '<p class="hint no-print" style="margin-top:10px; max-width:60ch">Archiving keeps a copy of the whole season and moves on to the next. Starting empty discards everything here — use it only between seasons.</p>';
   return html;
 }
 
@@ -3073,6 +3143,15 @@ document.addEventListener("change", e => {
   // delegator below.
   if (act === "set-sort"){ sortBy = t.value; render(); return; }
   if (act === "set-filter-sel"){ filter = t.value || "all"; tab = "season"; render(); return; }
+  if (act === "jump-cat"){
+    const id = t.value;
+    if (!id) return;
+    openCats.add(id);
+    render();
+    const target = document.querySelector('[data-act="toggle-cat"][data-id="' + id + '"]');
+    if (target) target.scrollIntoView({behavior:"smooth", block:"start"});
+    return;
+  }
   if (!t.dataset || !t.dataset.field) return;
   setField(t.dataset.field, t.type === "checkbox" ? t.checked : t.value, t.dataset.type);
   if (!t.dataset.rerender && t.type !== "checkbox") return;
@@ -3115,17 +3194,18 @@ document.addEventListener("keydown", e => {
 document.addEventListener("click", async e => {
   const el = e.target.closest("[data-act]");
   if (!el) {
-    if (e.target.id === "sheetWrap"){ openShowId = null; renderSheet(); render(); }
+    if (e.target.id === "sheetWrap"){ closeSheet(); }
     return;
   }
   const act = el.dataset.act;
 
   if (act === "undo"){ takeUndo(); return; }
 
-  if (act === "mark-seen"){
+  if (act === "record-seen"){
     const s = getShow(el.dataset.id);
     if (!s) return;
-    s.seen = s.booked || new Date().toISOString().slice(0, 10);
+    const inp = document.querySelector("#rv-" + s.id);
+    s.seen = (inp && inp.value) || new Date().toISOString().slice(0, 10);
     queueSave("show", s.id);
     renderSheet(); render({keepSheet:true});
     toast("Logged as seen on " + fmtDate(s.seen));
@@ -3322,12 +3402,16 @@ document.addEventListener("click", async e => {
     const s = newShow({});
     shows.push(s);
     flushSave("show", s.id);
+    sheetOpener = '[data-act="open-show"][data-id="' + CSS.escape(s.id) + '"]';
     openShowId = s.id; pendingFocus = true;
     renderSheet(); render({keepSheet:true});
     return;
   }
-  if (act === "open-show"){ openShowId = el.dataset.id; renderSheet(); return; }
-  if (act === "close-sheet"){ openShowId = null; renderSheet(); render(); return; }
+  if (act === "open-show"){
+    sheetOpener = '[data-act="open-show"][data-id="' + CSS.escape(el.dataset.id) + '"]';
+    openShowId = el.dataset.id; pendingFocus = true; renderSheet(); return;
+  }
+  if (act === "close-sheet"){ closeSheet(); return; }
   if (act === "del-show"){
     const s = getShow(el.dataset.id);
     if (!s) return;
@@ -3335,7 +3419,8 @@ document.addEventListener("click", async e => {
     const at = shows.indexOf(s);
     const held = harvestPicks(s.id + ":");
     await removeShow(el.dataset.id);
-    openShowId = null; renderSheet(); render();
+    sheetOpener = null; openShowId = null; renderSheet(); render();
+    const v = $("#view"); if (v) v.focus();
     offerUndo("Removed " + titleOf(s), async () => {
       shows.splice(Math.min(at, shows.length), 0, s);
       returnPicks(held);
@@ -3450,7 +3535,7 @@ document.addEventListener("change", async e => {
     else {
       alert(result.failed + " record" + (result.failed === 1 ? "" : "s") + " could not be saved, so the restore is " +
         "incomplete. What was here before is in the snapshot taken just now — open " +
-        "Restore a snapshot on the Nominations tab to put it back.");
+        "Restore a snapshot on the Ballot tab to put it back.");
     }
   } catch (err){
     toast("That file could not be restored.");
@@ -3459,7 +3544,12 @@ document.addEventListener("change", async e => {
 });
 
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape" && openShowId){ openShowId = null; renderSheet(); render(); }
+  if (!openShowId) return;
+  if (e.key === "Escape"){ closeSheet(); return; }
+  if (e.key === "Tab"){
+    const wrap = document.querySelector("#sheetWrap");
+    if (wrap && !wrap.hidden) trapTabKey(e, wrap);
+  }
 });
 
 /* ============================================================
