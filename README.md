@@ -31,10 +31,15 @@ does not zoom — and wider viewports add columns on top. Density returns only a
 targets.
 
 **Layout.** Crisp rectangles, zero radius, hairline rules instead of boxes, and a
-lot of air. The Season page opens on an asymmetric hero: one dominant message
-sized to the state of the season, one primary action, and *Opening next* beside
-it as supporting content. An oversized outlined season year sits behind it as the
-only ornament.
+lot of air. The Season page opens on an asymmetric hero: your next booked night,
+and what follows it beside.
+
+**Said once.** Nothing on a page states the same fact twice. The season name
+appears in the hero on Season and in the masthead everywhere else, never both. The
+next booking is named in the headline, so the aside lists what comes *after* it.
+Each production's type sits in its own line rather than in a column repeating
+"New play" twenty times. A production with nothing under consideration leaves the
+cell empty rather than filling it with a dash.
 
 **Motion.** One short rise as a view settles, arrows that travel 4px on hover, and
 nothing else — all of it removed under `prefers-reduced-motion`.

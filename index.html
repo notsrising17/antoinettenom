@@ -145,15 +145,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .tab[aria-selected="true"]::after{transform:scaleX(1)}
 
 /* ---- hero: asymmetric, one message, one action ---- */
-.hero{position:relative; padding-block:clamp(38px,7vw,86px) clamp(30px,5vw,56px); overflow:hidden}
+.hero{padding-block:clamp(34px,6vw,72px) clamp(28px,4vw,48px)}
 .hero-grid{display:grid; grid-template-columns:minmax(0,1fr); gap:34px; align-items:start; position:relative; z-index:1}
-/* An oversized season year, set in the display face and barely there. */
-.hero-mark{
-  position:absolute; right:-.06em; top:-.14em; z-index:0; pointer-events:none; user-select:none;
-  font-family:var(--display); font-weight:700; font-size:clamp(116px,40vw,340px);
-  line-height:.78; letter-spacing:-.02em; color:transparent; white-space:nowrap;
-  -webkit-text-stroke:1.5px var(--pale); opacity:.85;
-}
 .hero-eyebrow{
   font-family:var(--display); font-size:14px; font-weight:500; letter-spacing:.22em;
   text-transform:uppercase; color:var(--accent); margin:0 0 16px; display:block;
@@ -173,7 +166,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .hero-aside h2{font-family:var(--display); font-size:14px; font-weight:500; letter-spacing:.18em; text-transform:uppercase; color:var(--text-2); margin-bottom:14px}
 .upnext{display:flex; flex-direction:column}
 .upnext button{
-  display:grid; grid-template-columns:minmax(0,88px) minmax(0,1fr); gap:14px; align-items:baseline;
+  display:grid; grid-template-columns:auto minmax(0,1fr); gap:16px; align-items:baseline;
   padding:13px 0; border:0; border-bottom:1px solid var(--line); text-decoration:none; color:inherit;
   background:none; text-align:left; cursor:pointer; font:inherit; width:100%;
 }
@@ -190,7 +183,10 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .titlelink:hover{border-bottom-color:var(--accent); color:var(--accent)}
 .cal-row{display:flex; gap:10px; flex-wrap:wrap; margin-top:18px}
 .cal-row .btn{text-decoration:none; display:inline-flex; align-items:center; justify-content:center}
-.pagefoot{display:flex; gap:12px; flex-wrap:wrap; margin-top:54px; padding-top:26px; border-top:1px solid var(--line)}
+.pagefoot{display:flex; gap:14px; flex-wrap:wrap; align-items:center; margin-top:54px; padding-top:26px; border-top:1px solid var(--line)}
+.footfield{display:flex; align-items:center; gap:10px; font-family:var(--display); font-size:12px;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--text-3); margin-left:auto}
+.footfield .inp{width:72px; text-align:center}
 #packet{margin-top:74px; padding-top:8px; border-top:2px solid var(--text)}
 .arrow{display:inline-block; transition:transform .28s var(--ease); margin-left:.5em}
 .btn:hover .arrow, .linkish:hover .arrow{transform:translateX(4px)}
@@ -202,7 +198,6 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 
 @media (min-width:860px){
   .hero-grid{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); gap:clamp(28px,5vw,64px)}
-  .hero-mark{font-size:clamp(150px,30vw,340px)}
 }
 
 /* ---- generic bits ---- */
@@ -297,8 +292,7 @@ textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
 /* Phone first: one column, everything stacked and full width. */
 .lhead{display:none}
 .lrow{
-  display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px 14px;
-  align-items:start; padding:18px 4px;
+  display:grid; grid-template-columns:minmax(0,1fr); gap:8px; align-items:start; padding:18px 4px;
 }
 .lrow .c-title{grid-column:1/-1}
 .lrow .c-awards{grid-column:1/-1}
@@ -329,7 +323,7 @@ textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
 .awards-none{font-family:var(--display); font-size:13px; letter-spacing:.12em; color:var(--text-3)}
 
 /* seen / not seen, the filter that actually gets used */
-.seg{display:inline-flex; border:1px solid var(--line-2)}
+.seg{display:inline-flex; flex-wrap:wrap; align-self:flex-start; border:1px solid var(--line-2)}
 .seg-b{
   font-family:var(--display); font-size:13px; letter-spacing:.12em; text-transform:uppercase;
   font-weight:400; background:none; border:0; border-left:1px solid var(--line-2);
@@ -346,8 +340,8 @@ textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
 .empty h3{font-family:var(--display); font-size:21px; color:var(--text); margin-bottom:6px}
 @media (min-width:900px){
   .lhead, .lrow{
-    display:grid; grid-template-columns:minmax(0,1.3fr) 120px minmax(0,1.4fr) minmax(0,92px);
-    gap:22px; align-items:center; padding:20px 4px;
+    display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1.25fr) minmax(0,96px);
+    gap:26px; align-items:center; padding:20px 4px;
   }
   .lrow .c-title, .lrow .c-awards, .lrow .c-flags{grid-column:auto}
 }
@@ -2067,7 +2061,8 @@ function returnPicks(held){
 
 function paintStrip(){
   const mast = $("#mastSeason");
-  if (mast) mast.textContent = meta.label;
+  // The Season page sets the name in its own hero; repeating it here is noise.
+  if (mast){ mast.textContent = meta.label; mast.hidden = (tab === "season" && !recovery && !intake && !rosterUpdate); }
   const nameEl = $("#seasonName");
   if (nameEl && nameEl.value !== meta.label && document.activeElement !== nameEl) nameEl.value = meta.label;
 }
@@ -2417,7 +2412,6 @@ function renderSeason(){
   const list = visibleShows();
   const awardsFor = awardsByShow();
   const revisits = shows.filter(s => s.revisit || stale(s));
-  const years = (/(\d{4})\D+(\d{2,4})/.exec(meta.label || "") || [, "", ""]).slice(1).filter(Boolean).join("/");
   const upcoming = shows.filter(s => s.eligible && !s.seen && s.opened)
     .sort((a, b) => a.opened.localeCompare(b.opened));
   const next = upcoming[0];
@@ -2428,7 +2422,6 @@ function renderSeason(){
 
   // The hero answers "what am I doing about this season", not "what is this season".
   let html = '<section class="hero">' +
-    (years ? '<div class="hero-mark" aria-hidden="true">' + esc(years) + "</div>" : "") +
     '<div class="hero-grid">' +
       '<div class="hero-lead rise">' +
         '<input class="hero-eyebrow" id="seasonName" data-field="meta:label" aria-label="Season name" spellcheck="false">' +
@@ -2438,7 +2431,7 @@ function renderSeason(){
               '<button class="titlelink" data-act="open-show" data-id="' + booked[0].id + '">' +
               esc(titleOf(booked[0])) + "</button>" +
               (booked[0].theatre ? " at " + esc(booked[0].theatre) : "") + "." +
-              (booked.length > 1 ? " Then " + booked.slice(1, 3).map(s => esc(titleOf(s))).join(", ") + "." : "") + "</p>"
+              "</p>"
           : '<h1 class="hero-title">Nothing booked</h1>' +
             '<p class="hero-msg">Open a production below and set the night you are going &mdash; it will appear here and can go straight to your calendar.</p>') +
         (late.length
@@ -2450,17 +2443,22 @@ function renderSeason(){
             towriteUp.length + " seen, not yet written up<span class=\"arrow\" aria-hidden=\"true\">&rarr;</span></button></p>" : "") +
         '<p class="tally-line" style="margin-top:22px">' + seasonLine() + "</p>" +
       "</div>" +
-      '<aside class="hero-aside rise rise-2" aria-label="' + (booked.length ? "Your diary" : "Opening next") + '">' +
-        "<h2>" + (booked.length ? "Your diary" : "Opening next") + "</h2>" +
-        ((booked.length ? booked : upcoming).length
-          ? '<div class="upnext">' + (booked.length ? booked : upcoming).slice(0, 4).map(s =>
+      // The headline already names the first booking; the aside carries what follows it.
+      (() => {
+        const rest = booked.slice(1);
+        const showing = rest.length ? rest : (booked.length ? [] : upcoming);
+        const heading = rest.length ? "Then" : "Opening next";
+        if (!showing.length) return "";
+        return '<aside class="hero-aside rise rise-2" aria-label="' + heading + '">' +
+        "<h2>" + heading + "</h2>" +
+        ('<div class="upnext">' + showing.slice(0, 4).map(s =>
               '<button data-act="open-show" data-id="' + s.id + '">' +
-                '<span class="u-d">' + esc(booked.length ? bookedShort(s) : fmtDate(s.opened)) + "</span>" +
+                '<span class="u-d">' + esc(s.booked ? bookedShort(s) : fmtDate(s.opened)) + "</span>" +
                 '<span><span class="u-t">' + esc(titleOf(s)) + "</span>" +
-                '<span class="u-s">' + [esc(s.theatre), booked.length ? "" : TYPES[s.type].label].filter(Boolean).join(" &middot; ") + "</span></span>" +
-              "</button>").join("") + "</div>"
-          : '<p class="hint">Nothing with a date left to open.</p>') +
-      "</aside>" +
+                '<span class="u-s">' + [esc(s.theatre), s.booked ? "" : TYPES[s.type].label].filter(Boolean).join(" &middot; ") + "</span></span>" +
+              "</button>").join("") + "</div>") +
+        "</aside>";
+      })() +
     "</div></section>";
 
   const worked = shows.some(s => s.seen);
@@ -2477,26 +2475,16 @@ function renderSeason(){
   }
 
   html += '<div class="toolbar">' +
-    '<div class="field"><label>Show me</label><div class="seg" role="group" aria-label="Filter by whether you have seen it">' +
-      [["all", "All"], ["seen", "Seen"], ["unseen", "Not seen"]]
+    '<div class="field" style="flex:1 1 100%"><label>Show me</label><div class="seg" role="group" aria-label="Filter the season">' +
+      [["all", "All"], ["booked", "Booked"], ["unseen", "Not seen"], ["seen", "Seen"],
+       ["unmarked", "Not written up"], ["considering", "In the running"]]
       .map(([v, l]) => '<button class="seg-b" data-act="set-filter" data-v="' + v + '" aria-pressed="' +
         (filter === v) + '">' + l + "</button>").join("") +
     "</div></div>" +
-    '<div class="field"><label for="fFilter">Also</label><select class="inp" id="fFilter" data-act="set-filter-sel">' +
-      [["", "No further filter"],
-       ["booked","Booked to see"],
-       ["unmarked","Seen, not written up (" + c.unmarked + ")"],
-       ["considering","Something under consideration"],
-       ["revisit","Worth a second look (" + c.revisit + ")"],
-       ["recused","Recused (" + c.recused + ")"]]
-      .map(([v, l]) => '<option value="' + v + '"' + (filter === v ? " selected" : "") + ">" + esc(l) + "</option>").join("") +
-    "</select></div>" +
     '<div class="field"><label for="fSort">Order by</label><select class="inp" id="fSort" data-act="set-sort">' +
       [["opened","Opening night"],["seen","Date seen"],["score","My score"],["title","Title"]]
       .map(([v, l]) => '<option value="' + v + '"' + (sortBy === v ? " selected" : "") + ">" + l + "</option>").join("") +
     "</select></div>" +
-    '<div class="field" style="flex:0 0 128px"><label for="fEligible">Eligible this season</label>' +
-      '<input class="inp mono" id="fEligible" type="number" min="0" max="200" value="' + (+meta.eligibleTotal || 0) + '" data-field="meta:eligibleTotal" data-type="number" data-rerender="1"></div>' +
     '<div class="field" style="flex:1 1 210px"><label for="fSearch">Search</label>' +
       '<input class="inp" id="fSearch" type="search" value="' + esc(query) + '" data-act="set-query" ' +
       'placeholder="Title, theatre, designer, performer" autocomplete="off"></div>' +
@@ -2521,7 +2509,7 @@ function renderSeason(){
   }
 
   html += '<div class="ledger"><div class="lhead">' +
-    "<div>Production</div><div>Type</div><div>Under consideration for</div><div></div></div>";
+    "<div>Production</div><div>Under consideration for</div><div></div></div>";
 
   if (!list.length){
     html += '<div class="empty"><h3>Nothing here yet</h3><p>Log a production the night you see it — the note you write in the lobby is the one you will trust in April.</p></div>';
@@ -2540,13 +2528,12 @@ function renderSeason(){
           (s.seen ? '<span class="tick" aria-hidden="true">\u2713</span>' : "") +
           "<em>" + esc(titleOf(s)) + "</em>" +
           (s.seen ? '<span class="vh"> (seen)</span>' : "") + "</div>" +
-          '<div class="sub">' + [esc(s.author), esc(s.theatre),
+          '<div class="sub">' + [TYPES[s.type].label, esc(s.author), esc(s.theatre),
             s.seen ? "seen " + fmtDate(s.seen) : (s.opened ? "opens " + fmtDate(s.opened) : "date TBA")]
             .filter(Boolean).join(" &middot; ") + "</div></div>" +
-        '<div class="c-type"><span class="typename">' + TYPES[s.type].label + "</span></div>" +
         '<div class="c-awards">' + (awards.length
             ? '<div class="awards">' + awards.map(c => '<span class="award">' + esc(shortName(c)) + "</span>").join("") + "</div>"
-            : '<span class="awards-none">&mdash;</span>') + "</div>" +
+            : "") + "</div>" +
         '<div class="c-flags flags">' + flags.join("") + "</div>" +
       "</button>";
     }
@@ -2557,6 +2544,9 @@ function renderSeason(){
   html += '<div class="pagefoot">' +
     '<button class="btn" data-act="intake-open">Paste a press release<span class="arrow" aria-hidden="true">&rarr;</span></button>' +
     '<button class="btn" data-act="new-show">Add a production by hand</button>' +
+    '<label class="footfield">Eligible this season' +
+      '<input class="inp" type="number" min="0" max="200" value="' + (+meta.eligibleTotal || 0) +
+      '" data-field="meta:eligibleTotal" data-type="number" data-rerender="1"></label>' +
   "</div>";
   return html;
 }
