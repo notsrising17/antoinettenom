@@ -1,0 +1,1494 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Nominator's Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400&family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* ---- tokens: light (complete set) ---- */
+:root{
+  --bg:#F1EDED; --surface:#FCFAFA; --surface-2:#E8E2E2; --surface-3:#DBD3D3;
+  --line:#D5CCCC; --line-2:#BCB0B0;
+  --text:#1E1819; --text-2:#5C5152; --text-3:#8A7D7E;
+  --accent:#8E2436; --accent-2:#B23A4E; --accent-soft:#F7E5E7;
+  --brass:#96701D; --brass-2:#C59B3B; --brass-soft:#EFE5CC;
+  --good:#2C6A4E; --good-soft:#E1EDE6;
+  --warn:#8E5D0E; --warn-soft:#F5E9D4;
+  --crit:#A32E27; --crit-soft:#F7E2DF;
+  --shadow:0 1px 1px rgba(30,24,25,.05), 0 10px 28px -14px rgba(30,24,25,.22);
+  --r:3px;
+  --display:"Bodoni Moda",Georgia,"Times New Roman",serif;
+  --ui:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#151011; --surface:#1E1718; --surface-2:#281F20; --surface-3:#322829;
+    --line:#352B2C; --line-2:#4A3C3D;
+    --text:#F1E9E8; --text-2:#B3A5A4; --text-3:#887979;
+    --accent:#CD4A5E; --accent-2:#E4788A; --accent-soft:#3A1A20;
+    --brass:#D4AB50; --brass-2:#EBC978; --brass-soft:#342913;
+    --good:#63B28A; --good-soft:#17301F;
+    --warn:#D9A447; --warn-soft:#33270F;
+    --crit:#E4726A; --crit-soft:#37201D;
+    --shadow:0 1px 1px rgba(0,0,0,.4), 0 14px 34px -16px rgba(0,0,0,.7);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#151011; --surface:#1E1718; --surface-2:#281F20; --surface-3:#322829;
+  --line:#352B2C; --line-2:#4A3C3D;
+  --text:#F1E9E8; --text-2:#B3A5A4; --text-3:#887979;
+  --accent:#CD4A5E; --accent-2:#E4788A; --accent-soft:#3A1A20;
+  --brass:#D4AB50; --brass-2:#EBC978; --brass-soft:#342913;
+  --good:#63B28A; --good-soft:#17301F;
+  --warn:#D9A447; --warn-soft:#33270F;
+  --crit:#E4726A; --crit-soft:#37201D;
+  --shadow:0 1px 1px rgba(0,0,0,.4), 0 14px 34px -16px rgba(0,0,0,.7);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}   /* class selectors below would otherwise outrank the UA rule */
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:var(--ui); font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{margin:0; text-wrap:balance; font-weight:600}
+input,select,textarea,button{font:inherit; color:inherit}
+a{color:var(--accent)}
+.skip{position:absolute; left:-9999px}
+.skip:focus{left:8px; top:8px; z-index:99; background:var(--surface); padding:8px 12px; border:1px solid var(--line-2)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+
+.wrap{max-width:1180px; margin:0 auto; padding-inline:20px}
+.mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
+.eyebrow{
+  font-family:var(--mono); font-size:10.5px; font-weight:500; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--text-3);
+}
+
+/* ---- marquee ---- */
+.marquee{
+  border-bottom:1px solid var(--line); background:var(--surface);
+  position:sticky; top:0; z-index:30;
+}
+.marquee-top{display:flex; align-items:flex-end; gap:24px; flex-wrap:wrap; padding-block:18px 14px}
+.brand{flex:1 1 260px; min-width:0}
+.brand .eyebrow{display:block; margin-bottom:3px}
+.season-name{
+  font-family:var(--display); font-size:clamp(26px,4.4vw,37px); font-weight:600;
+  letter-spacing:-.015em; line-height:1.05; background:none; border:0; padding:0;
+  width:100%; border-bottom:1px dashed transparent;
+}
+.season-name:hover{border-bottom-color:var(--line-2)}
+.season-name:focus{outline:none; border-bottom-color:var(--accent)}
+.tabs{display:flex; gap:2px; flex-wrap:wrap}
+.tab{
+  font-family:var(--mono); font-size:11.5px; letter-spacing:.08em; text-transform:uppercase;
+  background:none; border:1px solid transparent; border-bottom:2px solid transparent;
+  padding:8px 13px; cursor:pointer; color:var(--text-2); border-radius:var(--r) var(--r) 0 0;
+}
+.tab:hover{color:var(--text); background:var(--surface-2)}
+.tab[aria-selected="true"]{color:var(--accent); border-bottom-color:var(--accent); font-weight:600}
+
+/* ---- coverage strip ---- */
+.strip{border-top:1px solid var(--line); background:var(--surface-2)}
+.strip-inner{display:flex; gap:0; flex-wrap:wrap; padding-block:0}
+.stat{
+  padding:9px 18px 9px 0; margin-right:18px; border-right:1px solid var(--line);
+  display:flex; align-items:baseline; gap:7px; min-width:0;
+}
+.stat:last-child{border-right:0; margin-right:0}
+.stat b{font-family:var(--mono); font-size:16px; font-weight:600; font-variant-numeric:tabular-nums}
+.stat span{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-3)}
+.stat.is-warn b{color:var(--warn)} .stat.is-crit b{color:var(--crit)} .stat.is-good b{color:var(--good)}
+
+/* ---- generic bits ---- */
+.view{padding-block:26px 64px}
+.btn{
+  font-family:var(--mono); font-size:11.5px; letter-spacing:.07em; text-transform:uppercase;
+  background:var(--surface); border:1px solid var(--line-2); color:var(--text);
+  padding:8px 13px; border-radius:var(--r); cursor:pointer;
+}
+.btn:hover{border-color:var(--text-3); background:var(--surface-2)}
+.btn-primary{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600}
+.btn-primary:hover{background:var(--accent-2); border-color:var(--accent-2)}
+.btn-ghost{border-color:transparent; background:none; color:var(--text-2)}
+.btn-ghost:hover{background:var(--surface-2); color:var(--text)}
+.btn-danger{color:var(--crit); border-color:var(--line-2)}
+.btn-danger:hover{background:var(--crit-soft); border-color:var(--crit)}
+.btn-sm{padding:5px 9px; font-size:10.5px}
+
+.chip{
+  display:inline-flex; align-items:center; gap:5px; font-family:var(--mono);
+  font-size:10px; letter-spacing:.07em; text-transform:uppercase; padding:3px 7px;
+  border-radius:2px; border:1px solid var(--line-2); color:var(--text-2); white-space:nowrap;
+}
+.chip-good{color:var(--good); border-color:var(--good); background:var(--good-soft)}
+.chip-warn{color:var(--warn); border-color:var(--warn); background:var(--warn-soft)}
+.chip-crit{color:var(--crit); border-color:var(--crit); background:var(--crit-soft)}
+.chip-accent{color:var(--accent); border-color:var(--accent); background:var(--accent-soft)}
+.chip-quiet{color:var(--text-3); border-style:dashed}
+
+.field{display:flex; flex-direction:column; gap:5px; min-width:0}
+.field > label{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-3)}
+.inp, select.inp, textarea.inp{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--r);
+  padding:7px 9px; width:100%; font-size:14px;
+}
+.inp:focus{border-color:var(--accent); outline:none}
+textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
+.hint{font-size:12px; color:var(--text-3); line-height:1.45}
+
+.banner{
+  display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap;
+  border:1px solid var(--brass); border-left:3px solid var(--brass);
+  background:var(--brass-soft); padding:12px 14px; border-radius:var(--r); margin-bottom:22px;
+}
+.banner p{margin:0; font-size:13.5px; color:var(--text-2); flex:1 1 300px}
+.banner strong{color:var(--text)}
+
+/* ---- fader (dimmer scale) ---- */
+.fader{display:inline-flex; align-items:flex-end; gap:2px; height:20px; cursor:pointer; padding:2px 0}
+.fader .seg{
+  width:7px; background:var(--surface-3); border:1px solid var(--line); border-radius:1px;
+  transition:background .08s linear;
+}
+.fader[data-value="0"] .seg{opacity:.6}
+.fader .seg.on{background:var(--brass-2); border-color:var(--brass)}
+.fader:hover .seg{border-color:var(--line-2)}
+.score-read{font-family:var(--mono); font-size:13px; font-weight:600; font-variant-numeric:tabular-nums; min-width:20px; color:var(--text)}
+.score-read.none{color:var(--text-3); font-weight:400}
+.rate{display:flex; align-items:center; gap:9px}
+
+/* ---- ledger ---- */
+.toolbar{display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-bottom:16px}
+.toolbar .field{flex:0 1 170px}
+.toolbar .spacer{flex:1 1 auto}
+.ledger{border:1px solid var(--line); border-radius:var(--r); overflow:hidden; background:var(--surface)}
+.lhead, .lrow{
+  display:grid; grid-template-columns:84px minmax(0,1fr) 122px 116px 120px minmax(0,138px);
+  gap:14px; align-items:center; padding:11px 16px;
+}
+.lhead{
+  background:var(--surface-2); border-bottom:1px solid var(--line);
+  font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-3);
+}
+.lrow{border-bottom:1px solid var(--line); text-align:left; width:100%; background:none; border-left:0; border-right:0; border-top:0; cursor:pointer; font:inherit; color:inherit}
+.lrow:last-child{border-bottom:0}
+.lrow:hover{background:var(--accent-soft)}
+.lrow .title{font-family:var(--display); font-size:18px; font-weight:600; letter-spacing:-.01em; line-height:1.2}
+.lrow .title em{font-style:italic}
+.lrow .sub{font-size:12px; color:var(--text-3); margin-top:2px}
+.lrow .seen{font-family:var(--mono); font-size:12px; color:var(--text-2); font-variant-numeric:tabular-nums}
+.lrow .seen small{display:block; font-size:10px; color:var(--text-3); letter-spacing:.04em}
+.flags{display:flex; gap:4px; flex-wrap:wrap}
+.counts{font-family:var(--mono); font-size:12px; color:var(--text-2); font-variant-numeric:tabular-nums}
+.counts small{color:var(--text-3)}
+.empty{padding:46px 20px; text-align:center; color:var(--text-3); background:var(--surface)}
+.empty h3{font-family:var(--display); font-size:21px; color:var(--text); margin-bottom:6px}
+@media (max-width:860px){
+  .lhead{display:none}
+  .lrow{grid-template-columns:1fr auto; gap:8px 12px; padding:13px 14px; align-items:start}
+  .lrow .c-seen{order:1} .lrow .c-title{order:0; grid-column:1/-1}
+  .lrow .c-type{order:2} .lrow .c-rate{order:3; grid-column:1/-1}
+  .lrow .c-counts{order:4} .lrow .c-flags{order:5; grid-column:1/-1}
+}
+
+/* ---- section heads ---- */
+.sec{margin-top:34px}
+.sec:first-child{margin-top:0}
+.sec-head{display:flex; align-items:baseline; gap:12px; padding-bottom:8px; border-bottom:1px solid var(--line-2); margin-bottom:14px; flex-wrap:wrap}
+.sec-head h2{font-family:var(--display); font-size:23px; letter-spacing:-.01em}
+.sec-head .eyebrow{margin-left:auto}
+
+/* ---- sheet (assessment) ---- */
+.sheet-wrap{position:fixed; inset:0; z-index:60; display:flex; justify-content:center; overflow-y:auto; background:rgba(20,14,15,.5); padding:0 0 40px}
+.sheet{background:var(--bg); width:min(880px,100%); min-height:100%; border-inline:1px solid var(--line); box-shadow:var(--shadow)}
+.sheet-bar{
+  position:sticky; top:0; z-index:5; display:flex; gap:12px; align-items:center;
+  background:var(--surface); border-bottom:1px solid var(--line); padding:11px 20px; flex-wrap:wrap;
+}
+.sheet-bar .eyebrow{flex:1 1 auto}
+.sheet-body{padding:22px 20px 40px}
+.grid2{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px}
+.grid3{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px}
+.block{border:1px solid var(--line); background:var(--surface); border-radius:var(--r); padding:16px; margin-top:18px}
+.block > h3{font-family:var(--display); font-size:19px; margin-bottom:4px}
+.block > .hint{margin-bottom:14px}
+.craft-row{display:grid; grid-template-columns:150px minmax(0,1fr) 150px minmax(0,1.3fr); gap:12px; align-items:center; padding:9px 0; border-top:1px solid var(--line)}
+.craft-row:first-of-type{border-top:0}
+.craft-name{font-family:var(--mono); font-size:11.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--text-2)}
+.craft-row.off{opacity:.55}
+.perf-row{display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) 104px 96px 150px minmax(0,1.2fr) 34px; gap:10px; align-items:center; padding:9px 0; border-top:1px solid var(--line)}
+.perf-row:first-of-type{border-top:0}
+@media (max-width:820px){
+  .craft-row{grid-template-columns:1fr 1fr; gap:8px 12px}
+  .craft-row .craft-name{grid-column:1/-1}
+  .perf-row{grid-template-columns:1fr 1fr; gap:8px 10px; padding:14px 0}
+  .perf-row .p-note, .perf-row .p-name{grid-column:1/-1}
+}
+.x{background:none; border:1px solid transparent; color:var(--text-3); cursor:pointer; border-radius:var(--r); width:28px; height:28px; line-height:1}
+.x:hover{color:var(--crit); border-color:var(--line-2); background:var(--crit-soft)}
+
+/* ---- ballot ---- */
+.cat{border:1px solid var(--line); border-radius:var(--r); background:var(--surface); margin-bottom:7px; overflow:hidden}
+.cat-head{display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:12px; align-items:center; width:100%; text-align:left; background:none; border:0; padding:12px 15px; cursor:pointer; font:inherit; color:inherit}
+.cat-head:hover{background:var(--surface-2)}
+.cat-name{font-family:var(--display); font-size:17.5px; font-weight:600; line-height:1.25}
+.cat-meta{display:flex; gap:6px; align-items:center; flex-wrap:wrap}
+.cat-count{font-family:var(--mono); font-size:12px; color:var(--text-2); font-variant-numeric:tabular-nums; white-space:nowrap}
+.cat-body{border-top:1px solid var(--line); padding:0 15px 12px}
+.cand{display:grid; grid-template-columns:34px minmax(0,1fr) auto; gap:12px; align-items:start; padding:10px 0; border-bottom:1px solid var(--line)}
+.cand:last-child{border-bottom:0}
+.cand.is-nom{background:linear-gradient(90deg,var(--brass-soft),transparent 70%); margin-inline:-15px; padding-inline:15px}
+.cand.is-pass{opacity:.48}
+.cand-score{font-family:var(--mono); font-size:17px; font-weight:600; font-variant-numeric:tabular-nums; text-align:right; color:var(--brass)}
+.cand-score.none{color:var(--text-3); font-size:13px; font-weight:400}
+.cand-who{font-weight:600; font-size:15px}
+.cand-where{font-size:13px; color:var(--text-2)}
+.cand-where em{font-style:italic}
+.cand-note{font-size:13px; color:var(--text-2); margin-top:4px; border-left:2px solid var(--line-2); padding-left:9px; font-style:italic}
+.cand-acts{display:flex; gap:3px}
+.pick{font-family:var(--mono); font-size:10px; letter-spacing:.06em; text-transform:uppercase; padding:4px 8px; border:1px solid var(--line); background:var(--surface); border-radius:2px; cursor:pointer; color:var(--text-3)}
+.pick:hover{border-color:var(--text-3); color:var(--text)}
+.pick[aria-pressed="true"]{font-weight:600}
+.pick.nom[aria-pressed="true"]{background:var(--brass); border-color:var(--brass); color:#fff}
+.pick.hold[aria-pressed="true"]{background:var(--accent-soft); border-color:var(--accent); color:var(--accent)}
+.pick.pass[aria-pressed="true"]{background:var(--surface-3); border-color:var(--line-2); color:var(--text-2)}
+.target{display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11px; color:var(--text-3)}
+.target input{width:46px; text-align:center; padding:4px; font-family:var(--mono)}
+@media (max-width:680px){
+  .cat-head{grid-template-columns:1fr; gap:7px}
+  .cand{grid-template-columns:30px minmax(0,1fr); }
+  .cand-acts{grid-column:2; }
+}
+
+/* ---- report ---- */
+.report{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:clamp(20px,4vw,44px); max-width:840px}
+.report-head{text-align:center; border-bottom:2px solid var(--text); padding-bottom:18px; margin-bottom:26px}
+.report-head h2{font-family:var(--display); font-size:clamp(26px,5vw,38px); letter-spacing:-.02em; line-height:1.1}
+.report-head .eyebrow{margin-bottom:7px}
+.rgroup{margin-bottom:26px}
+.rgroup > h3{font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); border-bottom:1px solid var(--line); padding-bottom:6px; margin-bottom:12px}
+.rcat{margin-bottom:15px; break-inside:avoid}
+.rcat h4{font-size:13.5px; font-weight:600; margin-bottom:3px}
+.rcat ol{margin:0; padding-left:22px}
+.rcat li{font-size:14px; padding:1.5px 0}
+.rcat li em{font-style:italic; color:var(--text-2)}
+.rcat .none{font-family:var(--mono); font-size:11.5px; color:var(--warn); letter-spacing:.04em}
+.tally{width:100%; border-collapse:collapse; font-size:14px}
+.tally th, .tally td{text-align:left; padding:7px 10px; border-bottom:1px solid var(--line)}
+.tally th{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-3)}
+.tally td.n{font-family:var(--mono); font-variant-numeric:tabular-nums; text-align:right; width:74px}
+.tally em{font-style:italic}
+.tbl-scroll{overflow-x:auto}
+.exports{display:flex; gap:8px; flex-wrap:wrap; margin-top:18px}
+
+.foot{border-top:1px solid var(--line); padding-block:18px 34px; color:var(--text-3); font-size:12.5px}
+.foot p{margin:0 0 6px}
+.toast{
+  position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:90;
+  background:var(--text); color:var(--bg); padding:9px 16px; border-radius:var(--r);
+  font-family:var(--mono); font-size:12px; letter-spacing:.04em; box-shadow:var(--shadow);
+}
+@media print{
+  .marquee,.strip,.foot,.exports,.sheet-wrap,.toast,.no-print{display:none!important}
+  body{background:#fff; color:#000}
+  .report{border:0; padding:0; max-width:none}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#view">Skip to the ledger</a>
+
+<header class="marquee">
+  <div class="wrap marquee-top">
+    <div class="brand">
+      <span class="eyebrow">Tony nominator &middot; season assessment ledger</span>
+      <input class="season-name" id="seasonName" data-field="meta:label" aria-label="Season name" spellcheck="false">
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Views">
+      <button class="tab" role="tab" data-act="tab" data-tab="season" id="tab-season">Season</button>
+      <button class="tab" role="tab" data-act="tab" data-tab="ballot" id="tab-ballot">Ballot</button>
+      <button class="tab" role="tab" data-act="tab" data-tab="report" id="tab-report">Nominations</button>
+    </nav>
+  </div>
+  <div class="strip"><div class="wrap strip-inner" id="strip"></div></div>
+</header>
+
+<main class="wrap view" id="view" tabindex="-1"></main>
+
+<div class="sheet-wrap" id="sheetWrap" hidden></div>
+<div class="toast" id="toast" hidden></div>
+
+<footer class="wrap foot">
+  <p>Your assessments stay in this ledger. Download a backup before the nominating meeting &mdash; it is the only copy you control.</p>
+  <p>Category list and eligibility rules follow the 26 competitive Tony Award categories. Rule calls (billing, original score, revival eligibility) are judgment &mdash; the ledger flags them, you settle them.</p>
+</footer>
+<noscript><p class="wrap">This ledger needs JavaScript to record and rank a season.</p></noscript>
+
+<script>
+"use strict";
+
+/* ============================================================
+   The 26 competitive Tony categories, grouped the way the
+   nominating committee works through them.
+   ============================================================ */
+const TYPES = {
+  "new-play":      {label:"New play",      form:"play",    production:"play"},
+  "new-musical":   {label:"New musical",   form:"musical", production:"musical"},
+  "revival-play":  {label:"Play revival",  form:"play",    production:"rev-play"},
+  "revival-musical":{label:"Musical revival", form:"musical", production:"rev-musical"},
+};
+
+/* Craft elements. `form` limits which productions can carry the credit.
+   `gate` names a per-show eligibility flag the nominator controls. */
+const CRAFTS = [
+  {key:"direction",      label:"Direction",      form:"any"},
+  {key:"book",           label:"Book",           form:"musical", gate:"bookEligible"},
+  {key:"score",          label:"Original score", form:"musical", gate:"scoreEligible"},
+  {key:"orchestrations", label:"Orchestrations", form:"musical"},
+  {key:"choreography",   label:"Choreography",   form:"any"},
+  {key:"scenic",         label:"Scenic design",  form:"any"},
+  {key:"costume",        label:"Costume design", form:"any"},
+  {key:"lighting",       label:"Lighting design",form:"any"},
+  {key:"sound",          label:"Sound design",   form:"any"},
+];
+const CRAFT_BY_KEY = Object.fromEntries(CRAFTS.map(c => [c.key, c]));
+
+const CATEGORIES = [
+  {id:"play",        group:"Productions",            name:"Best Play",                          kind:"production", production:"play"},
+  {id:"musical",     group:"Productions",            name:"Best Musical",                       kind:"production", production:"musical"},
+  {id:"rev-play",    group:"Productions",            name:"Best Revival of a Play",             kind:"production", production:"rev-play"},
+  {id:"rev-musical", group:"Productions",            name:"Best Revival of a Musical",          kind:"production", production:"rev-musical"},
+
+  {id:"la-p", group:"Performance — Play",    name:"Leading Actor in a Play",     kind:"perf", form:"play",    billing:"leading",  division:"actor"},
+  {id:"lz-p", group:"Performance — Play",    name:"Leading Actress in a Play",   kind:"perf", form:"play",    billing:"leading",  division:"actress"},
+  {id:"fa-p", group:"Performance — Play",    name:"Featured Actor in a Play",    kind:"perf", form:"play",    billing:"featured", division:"actor"},
+  {id:"fz-p", group:"Performance — Play",    name:"Featured Actress in a Play",  kind:"perf", form:"play",    billing:"featured", division:"actress"},
+  {id:"la-m", group:"Performance — Musical", name:"Leading Actor in a Musical",  kind:"perf", form:"musical", billing:"leading",  division:"actor"},
+  {id:"lz-m", group:"Performance — Musical", name:"Leading Actress in a Musical",kind:"perf", form:"musical", billing:"leading",  division:"actress"},
+  {id:"fa-m", group:"Performance — Musical", name:"Featured Actor in a Musical", kind:"perf", form:"musical", billing:"featured", division:"actor"},
+  {id:"fz-m", group:"Performance — Musical", name:"Featured Actress in a Musical",kind:"perf",form:"musical", billing:"featured", division:"actress"},
+
+  {id:"dir-p",  group:"Staging",          name:"Best Direction of a Play",    kind:"craft", craft:"direction",      form:"play"},
+  {id:"dir-m",  group:"Staging",          name:"Best Direction of a Musical", kind:"craft", craft:"direction",      form:"musical"},
+  {id:"choreo", group:"Staging",          name:"Best Choreography",           kind:"craft", craft:"choreography",   form:"any"},
+
+  {id:"book",   group:"Writing & music",  name:"Best Book of a Musical",      kind:"craft", craft:"book",           form:"musical"},
+  {id:"score",  group:"Writing & music",  name:"Best Original Score",         kind:"craft", craft:"score",          form:"musical"},
+  {id:"orch",   group:"Writing & music",  name:"Best Orchestrations",         kind:"craft", craft:"orchestrations", form:"musical"},
+
+  {id:"scn-p", group:"Design — Play",    name:"Best Scenic Design of a Play",    kind:"craft", craft:"scenic",   form:"play"},
+  {id:"cos-p", group:"Design — Play",    name:"Best Costume Design of a Play",   kind:"craft", craft:"costume",  form:"play"},
+  {id:"lit-p", group:"Design — Play",    name:"Best Lighting Design of a Play",  kind:"craft", craft:"lighting", form:"play"},
+  {id:"snd-p", group:"Design — Play",    name:"Best Sound Design of a Play",     kind:"craft", craft:"sound",    form:"play"},
+  {id:"scn-m", group:"Design — Musical", name:"Best Scenic Design of a Musical", kind:"craft", craft:"scenic",   form:"musical"},
+  {id:"cos-m", group:"Design — Musical", name:"Best Costume Design of a Musical",kind:"craft", craft:"costume",  form:"musical"},
+  {id:"lit-m", group:"Design — Musical", name:"Best Lighting Design of a Musical",kind:"craft",craft:"lighting", form:"musical"},
+  {id:"snd-m", group:"Design — Musical", name:"Best Sound Design of a Musical",  kind:"craft", craft:"sound",    form:"musical"},
+];
+const CAT_BY_ID = Object.fromEntries(CATEGORIES.map(c => [c.id, c]));
+const GROUPS = [...new Set(CATEGORIES.map(c => c.group))];
+
+/* ============================================================
+   State
+   ============================================================ */
+let shows = [];                 // array of show records
+let meta  = defaultMeta();
+let ballot = {picks:{}};        // picks[catId][candidateKey] = "nom"|"hold"|"pass"
+let tab = "season";
+let pendingFocus = false;
+let openShowId = null;
+let openCats = new Set();
+let filter = "all", sortBy = "seen";
+let storageNote = "";
+
+function defaultMeta(){
+  return {label:"2025–26 Broadway season", eligibleTotal:38, targets:{}, sample:false};
+}
+function uid(){ return Math.random().toString(36).slice(2,10); }
+function blankCrafts(){
+  const o = {};
+  for (const c of CRAFTS) o[c.key] = {credit:"", score:0, note:""};
+  return o;
+}
+function newShow(patch){
+  const s = {
+    id:uid(), title:"", type:"new-play", theatre:"", opened:"", seen:"",
+    eligible:true, recused:false, recusalNote:"", revisit:false,
+    overall:0, verdict:"", memory:"",
+    bookEligible:true, scoreEligible:true,
+    crafts:blankCrafts(), performances:[], createdAt:Date.now(),
+  };
+  return normalizeShow(Object.assign(s, patch||{}));
+}
+function normalizeShow(s){
+  s.crafts = s.crafts || {};
+  for (const c of CRAFTS){
+    const v = s.crafts[c.key] || {};
+    s.crafts[c.key] = {credit:v.credit||"", score:+v.score||0, note:v.note||""};
+  }
+  s.performances = (s.performances||[]).map(p => ({
+    id:p.id||uid(), name:p.name||"", role:p.role||"",
+    billing:p.billing||"leading", division:p.division||"actor",
+    score:+p.score||0, note:p.note||"", disputed:!!p.disputed,
+  }));
+  s.overall = +s.overall||0;
+  if (s.type === "revival-musical"){
+    if (s.bookEligible === undefined) s.bookEligible = false;
+    if (s.scoreEligible === undefined) s.scoreEligible = false;
+  }
+  return s;
+}
+const getShow = id => shows.find(s => s.id === id);
+const formOf = s => (TYPES[s.type] || TYPES["new-play"]).form;
+const targetFor = catId => meta.targets[catId] || 5;
+
+/* ============================================================
+   Storage: artifact db when the page runs in a viewer that grants
+   it, localStorage otherwise (a file opened straight from disk).
+   ============================================================ */
+const LS_KEY = "nominators-ledger-v1";
+let db = null, saveTimers = {};
+
+async function initStore(){
+  try { db = (window.claude && claude.use) ? await claude.use("db") : null; }
+  catch { db = null; }
+  if (db) return initDb();
+  return initLocal();
+}
+
+function initLocal(){
+  let raw = null;
+  try { raw = localStorage.getItem(LS_KEY); }
+  catch { storageNote = "This browser is blocking local storage, so nothing will be kept when you close the tab. Download a backup before you leave."; }
+  if (raw){
+    try {
+      const d = JSON.parse(raw);
+      shows = (d.shows||[]).map(normalizeShow);
+      meta = Object.assign(defaultMeta(), d.meta||{});
+      ballot = d.ballot || {picks:{}};
+    } catch { seedSample(); }
+  } else {
+    seedSample();
+    writeLocal();
+  }
+}
+function writeLocal(){
+  try { localStorage.setItem(LS_KEY, JSON.stringify({shows, meta, ballot})); } catch {}
+}
+
+async function initDb(){
+  const metaSnap = await db.doc("season/meta").get().catch(() => null);
+  const hasMeta = metaSnap && metaSnap.exists;
+  if (hasMeta) meta = Object.assign(defaultMeta(), metaSnap.data());
+  const ballotSnap = await db.doc("season/ballot").get().catch(() => null);
+  if (ballotSnap && ballotSnap.exists) ballot = Object.assign({picks:{}}, ballotSnap.data());
+  const showSnap = await db.collection("shows").get().catch(() => null);
+  shows = showSnap ? showSnap.docs.map(d => normalizeShow(Object.assign({id:d.id}, d.data()))) : [];
+
+  if (!hasMeta && shows.length === 0){
+    seedSample();
+    await Promise.all([
+      db.doc("season/meta").set(stripMeta(meta)),
+      db.doc("season/ballot").set({picks:ballot.picks}),
+      ...shows.map(s => db.doc("shows/" + s.id).set(showBody(s))),
+    ]).catch(() => {});
+  }
+
+  db.collection("shows").onSnapshot(snap => {
+    shows = snap.docs.map(d => normalizeShow(Object.assign({id:d.id}, d.data())));
+    render({keepSheet:true});
+  }, () => {});
+  db.doc("season/ballot").onSnapshot(s => {
+    if (s.exists){ ballot = Object.assign({picks:{}}, s.data()); render({keepSheet:true}); }
+  }, () => {});
+  db.doc("season/meta").onSnapshot(s => {
+    if (s.exists){ meta = Object.assign(defaultMeta(), s.data()); paintStrip(); }
+  }, () => {});
+}
+
+const showBody = s => { const {id, ...rest} = s; return rest; };
+const stripMeta = m => ({label:m.label, eligibleTotal:+m.eligibleTotal||0, targets:m.targets||{}, sample:!!m.sample});
+
+function queueSave(kind, id){
+  const key = kind + ":" + (id||"");
+  clearTimeout(saveTimers[key]);
+  saveTimers[key] = setTimeout(() => flushSave(kind, id), 500);
+}
+function flushSave(kind, id){
+  if (!db){ writeLocal(); return; }
+  if (kind === "show"){
+    const s = getShow(id);
+    if (s) db.doc("shows/" + id).set(showBody(s)).catch(noteWriteError);
+  } else if (kind === "meta"){
+    db.doc("season/meta").set(stripMeta(meta)).catch(noteWriteError);
+  } else if (kind === "ballot"){
+    db.doc("season/ballot").set({picks:ballot.picks}).catch(noteWriteError);
+  }
+}
+function noteWriteError(e){
+  const code = e && e.code;
+  if (code === "quota_exceeded") toast("This ledger is full. Remove a production to add another.");
+  else if (code === "revoked" || code === "not_granted") toast("Saving is switched off for this view — download a backup.");
+  else toast("That change did not save. Try again.");
+}
+async function removeShow(id){
+  shows = shows.filter(s => s.id !== id);
+  for (const catId in ballot.picks){
+    for (const key in ballot.picks[catId]) if (key.startsWith(id + ":")) delete ballot.picks[catId][key];
+  }
+  if (db){ await db.doc("shows/" + id).delete().catch(() => {}); flushSave("ballot"); }
+  else writeLocal();
+}
+async function replaceAll(data){
+  const nextShows = (data.shows||[]).map(normalizeShow);
+  const nextMeta = Object.assign(defaultMeta(), data.meta||{});
+  const nextBallot = data.ballot || {picks:{}};
+  if (db){
+    await Promise.all(shows.map(s => db.doc("shows/" + s.id).delete().catch(() => {})));
+    shows = nextShows; meta = nextMeta; ballot = nextBallot;
+    await Promise.all([
+      db.doc("season/meta").set(stripMeta(meta)),
+      db.doc("season/ballot").set({picks:ballot.picks}),
+      ...shows.map(s => db.doc("shows/" + s.id).set(showBody(s))),
+    ]).catch(noteWriteError);
+  } else {
+    shows = nextShows; meta = nextMeta; ballot = nextBallot;
+    writeLocal();
+  }
+}
+
+/* ============================================================
+   Candidates: who is eligible where
+   ============================================================ */
+function candidatesFor(cat){
+  const live = shows.filter(s => s.eligible && !s.recused && s.seen);
+  if (cat.kind === "production"){
+    return live
+      .filter(s => TYPES[s.type] && TYPES[s.type].production === cat.production)
+      .map(s => ({
+        key:s.id + ":show", showId:s.id, score:s.overall,
+        who:s.title || "Untitled production", where:"",
+        note:s.verdict || s.memory, seen:s.seen,
+      }));
+  }
+  if (cat.kind === "craft"){
+    const def = CRAFT_BY_KEY[cat.craft];
+    return live
+      .filter(s => cat.form === "any" || formOf(s) === cat.form)
+      .filter(s => !def.gate || s[def.gate] !== false)
+      .map(s => ({s, c:s.crafts[cat.craft]}))
+      .filter(x => x.c && (x.c.credit.trim() || x.c.score > 0))
+      .map(({s, c}) => ({
+        key:s.id + ":craft:" + cat.craft, showId:s.id, score:c.score,
+        who:c.credit.trim() || "Credit not recorded", where:s.title,
+        note:c.note, seen:s.seen,
+      }));
+  }
+  const out = [];
+  for (const s of live){
+    if (formOf(s) !== cat.form) continue;
+    for (const p of s.performances){
+      if (p.billing !== cat.billing || p.division !== cat.division) continue;
+      if (!p.name.trim()) continue;
+      out.push({
+        key:s.id + ":perf:" + p.id, showId:s.id, score:p.score,
+        who:p.name.trim(), where:s.title, role:p.role,
+        note:p.note, seen:s.seen, disputed:p.disputed,
+      });
+    }
+  }
+  return out;
+}
+function rank(list){
+  return list.slice().sort((a,b) => (b.score - a.score) || a.who.localeCompare(b.who));
+}
+const pickOf = (catId, key) => (ballot.picks[catId] || {})[key] || "";
+function setPick(catId, key, value){
+  ballot.picks[catId] = ballot.picks[catId] || {};
+  if (value) ballot.picks[catId][key] = value;
+  else delete ballot.picks[catId][key];
+  queueSave("ballot");
+}
+function nomineesFor(cat){
+  return rank(candidatesFor(cat)).filter(c => pickOf(cat.id, c.key) === "nom");
+}
+function catHealth(cat){
+  const cands = candidatesFor(cat);
+  const noms = cands.filter(c => pickOf(cat.id, c.key) === "nom").length;
+  const t = targetFor(cat.id);
+  const thin = cands.length < 4;          // fewer than four eligible is a field worth flagging
+  let state, label;
+  if (noms > t){ state = "over"; label = "over by " + (noms - t); }
+  else if (noms === t){ state = "set"; label = "slate set"; }
+  else if (!cands.length){ state = "empty"; label = "nothing eligible"; }
+  else if (thin){ state = "thin"; label = cands.length + " eligible \u2014 thin field"; }
+  else if (noms > 0){ state = "part"; label = (t - noms) + " slot" + (t - noms === 1 ? "" : "s") + " open"; }
+  else { state = "open"; label = cands.length + " eligible"; }
+  return {cands, noms, target:t, state, label, thin};
+}
+
+/* ============================================================
+   Dates / coverage
+   ============================================================ */
+const MS_DAY = 86400000;
+function fmtDate(iso){
+  if (!iso) return "";
+  const d = new Date(iso + "T12:00:00");
+  if (isNaN(d)) return iso;
+  return d.toLocaleDateString(undefined, {month:"short", day:"numeric"});
+}
+function daysSince(iso){
+  if (!iso) return null;
+  const d = new Date(iso + "T12:00:00");
+  if (isNaN(d)) return null;
+  return Math.floor((Date.now() - d.getTime()) / MS_DAY);
+}
+function assessed(s){
+  if (!s.seen) return false;
+  if (s.overall > 0) return true;
+  if (s.performances.some(p => p.score > 0)) return true;
+  return CRAFTS.some(c => s.crafts[c.key].score > 0);
+}
+function stale(s){
+  const d = daysSince(s.seen);
+  return !!s.seen && d !== null && d >= 120 && s.overall >= 8;
+}
+function coverage(){
+  const live = shows.filter(s => s.eligible);
+  const seen = live.filter(s => s.seen);
+  const logged = shows.length;
+  const unlogged = Math.max(0, (+meta.eligibleTotal || 0) - live.length);
+  const catsSet = CATEGORIES.filter(c => catHealth(c).state === "set").length;
+  const thin = CATEGORIES.filter(c => catHealth(c).thin).length;
+  return {
+    logged, seen:seen.length, notSeen:live.length - seen.length, unlogged,
+    unassessed:seen.filter(s => !assessed(s)).length,
+    recused:shows.filter(s => s.recused).length,
+    revisit:shows.filter(s => s.revisit || stale(s)).length,
+    catsSet, thin,
+  };
+}
+
+/* ============================================================
+   Sample season. Fictional productions and fictional artists,
+   plus three public-domain revivals, so nothing here is a claim
+   about a real show or a real performer.
+   ============================================================ */
+function seedSample(){
+  const S = (t, type, theatre, opened, seen, overall, verdict, memory, crafts, perfs, extra) => newShow(Object.assign({
+    title:t, type, theatre, opened, seen, overall, verdict, memory,
+    crafts:Object.assign(blankCrafts(), crafts),
+    performances:(perfs||[]).map(p => ({id:uid(), name:p[0], role:p[1], billing:p[2], division:p[3], score:p[4], note:p[5]||""})),
+  }, extra||{}));
+  const c = (credit, score, note) => ({credit, score, note:note||""});
+
+  shows = [
+    S("The Ha'penny Bridge","new-play","Kenmore Theatre","2025-10-17","2025-10-22",9,
+      "A small domestic argument that turns into a century of Irish emigration without ever raising its voice.",
+      "The father folding the letter four times before he reads it. Whole house stopped breathing.",
+      {direction:c("Nuala Brennan",9,"Holds silence longer than anyone this season and never loses the room."),
+       scenic:c("Ivo Rasmussen",8,"One kitchen, rebuilt twice in front of us."),
+       costume:c("Margaret Oyelaran",7),
+       lighting:c("Pell Dunwoody",9,"Morning through one window, forty years of it."),
+       sound:c("Tobias Lark",7,"Gull cries placed so precisely you smell the quay.")},
+      [["Declan Moore","Vincent Hegarty","leading","actor",9,"The spine of the evening. Does not ask to be liked once."],
+       ["Siobhan Carr","Eileen Hegarty","leading","actress",8,"Quietest hands on stage. Devastating in the last ten minutes."],
+       ["Oscar Pine","Young Vincent","featured","actor",7]]),
+
+    S("Glass Harbor","new-musical","Avalon Theatre","2025-11-14","2025-11-20",8,
+      "Ambitious, over-plotted, and carried the whole way by a score that knows exactly what it wants.",
+      "The act one button — eleven voices, no orchestra, dead stop.",
+      {direction:c("Rami Okonjo",7,"Clean traffic, shy about the big emotional turns."),
+       book:c("Perrin Vaughn",6,"Two subplots too many; the shipyard strike never pays off."),
+       score:c("Lou Ferraro & Agnes Dietrich",9,"Best new writing I have heard this year. Two melodies I still cannot shake."),
+       orchestrations:c("Henrietta Mbeki",9,"Twelve players sounding like thirty, and the brass knows when to sit down."),
+       choreography:c("Denny Ruiz",6),
+       scenic:c("Ivo Rasmussen",8,"Hull that becomes a ballroom floor. Earns its applause."),
+       costume:c("Yuki Tanabe",8),
+       lighting:c("Pell Dunwoody",7),
+       sound:c("Beatrix Cole",8,"Every lyric landed from the rear mezzanine.")},
+      [["Marguerite Sully","Ada Thorne","leading","actress",9,"Sings the eleven o'clock number sitting down and stops the show anyway."],
+       ["Calvin Ross","Peter Lyle","leading","actor",7],
+       ["Dot Ferreira","Mrs. Kettering","featured","actress",8,"Four scenes, owns all four."],
+       ["Joaquin Vela","Sam","featured","actor",6]]),
+
+    S("Hedda Gabler","revival-play","Thayer Theatre","2025-12-01","2025-12-03",7,
+      "A cold, clear reading that trusts the text and undercuts its own lead in the fourth act.",
+      "The pistol case left open on the table for the whole second half.",
+      {direction:c("Francesca Dolan",7,"Real point of view. The final image does not work."),
+       scenic:c("Per Halvorsen",8,"Glass box of a drawing room, snow visible on every side."),
+       costume:c("Margaret Oyelaran",8,"Silhouette does half the character work."),
+       lighting:c("Ines Amadi",7),
+       sound:c("Tobias Lark",6)},
+      [["Vera Lindqvist","Hedda","leading","actress",9,"Funniest and most frightening Hedda I expect to see. Nomination regardless of the production."],
+       ["Andrew Mbatha","Judge Brack","featured","actor",8,"Makes the blackmail sound like small talk."],
+       ["Julia Penhale","Thea Elvsted","featured","actress",6]]),
+
+    S("The Cherry Orchard","revival-play","Kenmore Theatre","2026-01-11","2026-01-15",6,
+      "Handsome, slow, and strangely unfeeling until the axes start.",
+      "Sound of the orchard coming down. That is the whole review.",
+      {direction:c("Gerald Voss",5,"Shape of the thing is lost by act three."),
+       scenic:c("Per Halvorsen",7),
+       costume:c("Yuki Tanabe",6),
+       lighting:c("Ines Amadi",6),
+       sound:c("Beatrix Cole",9,"The final offstage sound design is the best thing in the building.")},
+      [["Rosalind Achebe","Lyubov","leading","actress",7],
+       ["Emmett Shaw","Lopakhin","featured","actor",8,"Only person on stage who seems to want something."]]),
+
+    S("Ironwork","new-musical","Bellerby Theatre","2026-02-01","2026-02-04",9,
+      "The season's event. A foundry, a strike, and a score built out of the noise of the work itself.",
+      "Forty minutes of act two played on percussion made of the set. Never heard a house that quiet.",
+      {direction:c("Thandiwe Cole",9,"Every choice serves the same argument. Front of my list."),
+       book:c("Ezra Halloway",8,"Lean. Knows which three characters the show is about."),
+       score:c("Thandiwe Cole & Ezra Halloway",9,"Original, difficult, and hummable by the curtain."),
+       orchestrations:c("Henrietta Mbeki",8,"Anvils and a string quartet. It works."),
+       choreography:c("Maya Oduya",9,"Labour as dance without a single cute gesture."),
+       scenic:c("Gunnar Eide",9,"The set is the instrument. Best design of the year."),
+       costume:c("Priya Raghunathan",7),
+       lighting:c("Pell Dunwoody",9,"Furnace light. I could feel it in row H."),
+       sound:c("Beatrix Cole",9,"Hardest sound problem of the season, solved.")},
+      [["Imani Frost","Della Voigt","leading","actress",9,"Career-defining. Sings the strike speech flat on her back."],
+       ["Tomas Leira","Anton","leading","actor",8],
+       ["Harriet Gleeson","Ma Voigt","featured","actress",9,"One song. Stops the evening."],
+       ["Felix Adeyemi","The Foreman","featured","actor",8]]),
+
+    S("Seven Winters","new-play","Marlowe Theatre","2026-02-14","2026-02-19",7,
+      "Seven scenes, one bench, twenty-five years. The writing is better than the staging.",
+      "Scene five, two people not saying it. The only time the production got out of the way.",
+      {direction:c("Gerald Voss",6),
+       scenic:c("Lise Aumont",7,"One bench, seven snows."),
+       costume:c("Priya Raghunathan",7),
+       lighting:c("Ines Amadi",8,"Seven distinct winters out of one rig."),
+       sound:c("Tobias Lark",7)},
+      [["Graham Estes","Michael","leading","actor",8,"Ages twenty-five years without a wig trick."],
+       ["Ada Nwosu","Claire","leading","actress",8,"Matches him and then some in scene five."]]),
+
+    S("The Pirates of Penzance","revival-musical","Avalon Theatre","2026-03-03","2026-03-06",8,
+      "Genuinely funny, properly sung, and for once not embarrassed about the operetta.",
+      "The Major-General's patter at triple speed with the orchestra daring him to fall off.",
+      {direction:c("Rami Okonjo",8,"Farce mechanics are immaculate."),
+       orchestrations:c("Simon Achterberg",8,"New reduction that sounds bigger than the old one."),
+       choreography:c("Denny Ruiz",8,"Sabre routine in act two brought the house down."),
+       scenic:c("Gunnar Eide",7),
+       costume:c("Yuki Tanabe",9,"Wit in every seam. Should win."),
+       lighting:c("Lio Marchetti",6),
+       sound:c("Beatrix Cole",7)},
+      [["Barnaby Quill","Major-General","featured","actor",9,"Best comic performance of the season. Billing says featured — worth arguing."],
+       ["Clementine Fox","Mabel","leading","actress",8,"Real coloratura, real comedy."],
+       ["Niall O'Dea","Frederic","leading","actor",7],
+       ["Sadie Kwan","Ruth","featured","actress",7]],
+      {bookEligible:false, scoreEligible:false}),
+
+    S("Double Dutch","new-musical","Marlowe Theatre","2026-03-19","2026-03-24",5,
+      "A jukebox show with two good numbers and a book that apologises for existing.",
+      "Jump-rope sequence at the top of act two. That is the show worth keeping.",
+      {direction:c("Lacey Pryor",5),
+       book:c("Milo Eastman",4,"Scene transitions are narrated. Out loud."),
+       score:c("Existing catalogue — not original",0,"Assembled from released recordings. Not score-eligible."),
+       orchestrations:c("Simon Achterberg",7,"Best work anyone did on this."),
+       choreography:c("Maya Oduya",8,"The one reason to be in the room."),
+       scenic:c("Lise Aumont",5),
+       costume:c("Priya Raghunathan",6),
+       lighting:c("Lio Marchetti",6),
+       sound:c("Dev Anand",5)},
+      [["Roxanne Hale","Trina","leading","actress",6],
+       ["Wes Carmody","Duke","featured","actor",5]],
+      {scoreEligible:false, recused:true, recusalNote:"My agency represents the lead producer — recused from every category."}),
+
+    S("Almanac","new-play","Bellerby Theatre","2026-04-09","",0,"","",{},[]),
+  ];
+  meta = Object.assign(defaultMeta(), {
+    label:"2025–26 Broadway season", eligibleTotal:11, sample:true,
+  });
+
+  // A ballot part-way through the argument, so the sample shows what a working
+  // ledger looks like: 7 and up nominated, 5 and 6 held, the rest untouched.
+  ballot = {picks:{}};
+  for (const cat of CATEGORIES){
+    let placed = 0;
+    for (const c of rank(candidatesFor(cat))){
+      const pick = (c.score >= 7 && placed < targetFor(cat.id)) ? "nom" : c.score >= 5 ? "hold" : "";
+      if (!pick) continue;
+      if (pick === "nom") placed++;
+      ballot.picks[cat.id] = ballot.picks[cat.id] || {};
+      ballot.picks[cat.id][c.key] = pick;
+    }
+  }
+}
+
+/* ============================================================
+   Rendering helpers
+   ============================================================ */
+const $ = sel => document.querySelector(sel);
+function esc(v){
+  return String(v == null ? "" : v)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+const titleOf = s => s.title.trim() || "Untitled production";
+const italic = t => "<em>" + esc(t) + "</em>";
+
+function faderHTML(spec, value, aria){
+  let segs = "";
+  for (let i = 1; i <= 10; i++){
+    segs += '<div class="seg' + (i <= value ? " on" : "") + '" style="height:' + (7 + i * 1.15).toFixed(1) + 'px"></div>';
+  }
+  return '<div class="rate">' +
+    '<div class="fader" role="slider" tabindex="0" data-fader="' + esc(spec) + '" data-value="' + value +
+    '" aria-valuemin="0" aria-valuemax="10" aria-valuenow="' + value + '" aria-label="' + esc(aria) + '">' + segs + '</div>' +
+    '<span class="score-read' + (value ? "" : " none") + '">' + (value ? value : "—") + "</span></div>";
+}
+function faderStatic(value){
+  let segs = "";
+  for (let i = 1; i <= 10; i++){
+    segs += '<div class="seg' + (i <= value ? " on" : "") + '" style="height:' + (7 + i * 1.15).toFixed(1) + 'px"></div>';
+  }
+  return '<div class="rate"><div class="fader" aria-hidden="true" style="cursor:default" data-value="' + value + '">' + segs + "</div>" +
+    '<span class="score-read' + (value ? "" : " none") + '">' + (value ? value : "—") + "</span></div>";
+}
+function paintFader(node, value){
+  node.dataset.value = value;
+  node.setAttribute("aria-valuenow", value);
+  [...node.children].forEach((seg, i) => seg.classList.toggle("on", i + 1 <= value));
+  const read = node.parentElement.querySelector(".score-read");
+  if (read){ read.textContent = value ? value : "—"; read.classList.toggle("none", !value); }
+}
+let toastTimer;
+function toast(msg){
+  const t = $("#toast");
+  t.textContent = msg; t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, 3200);
+}
+
+function paintStrip(){
+  const c = coverage();
+  const toSee = c.notSeen + c.unlogged;
+  const cls = (n, bad) => n > 0 ? (bad || "is-warn") : "";
+  $("#strip").innerHTML = [
+    ['<b>' + c.logged + "</b><span>logged</span>", ""],
+    ['<b>' + c.seen + "</b><span>seen</span>", "is-good"],
+    ['<b>' + toSee + "</b><span>still to see</span>", cls(toSee)],
+    ['<b>' + c.unassessed + "</b><span>unscored</span>", cls(c.unassessed)],
+    ['<b>' + c.revisit + "</b><span>revisit</span>", c.revisit ? "is-warn" : ""],
+    ['<b>' + c.catsSet + "/26</b><span>slates set</span>", c.catsSet === 26 ? "is-good" : ""],
+    ['<b>' + c.thin + "</b><span>thin fields</span>", cls(c.thin, "is-crit")],
+  ].map(([html, k]) => '<div class="stat ' + k + '">' + html + "</div>").join("");
+  const nameEl = $("#seasonName");
+  if (nameEl && nameEl.value !== meta.label && document.activeElement !== nameEl) nameEl.value = meta.label;
+}
+
+/* ============================================================
+   Season view — the ledger
+   ============================================================ */
+function visibleShows(){
+  let list = shows.slice();
+  if (filter === "unseen")     list = list.filter(s => !s.seen);
+  if (filter === "unassessed") list = list.filter(s => s.seen && !assessed(s));
+  if (filter === "contenders") list = list.filter(s => s.overall >= 8 && !s.recused);
+  if (filter === "revisit")    list = list.filter(s => s.revisit || stale(s));
+  if (filter === "recused")    list = list.filter(s => s.recused);
+  const byTitle = (a, b) => titleOf(a).localeCompare(titleOf(b));
+  if (sortBy === "score")  list.sort((a, b) => (b.overall - a.overall) || byTitle(a, b));
+  else if (sortBy === "title") list.sort(byTitle);
+  else if (sortBy === "opened") list.sort((a, b) => (b.opened || "").localeCompare(a.opened || ""));
+  else list.sort((a, b) => {
+    if (!a.seen && !b.seen) return byTitle(a, b);
+    if (!a.seen) return -1;
+    if (!b.seen) return 1;
+    return b.seen.localeCompare(a.seen);
+  });
+  return list;
+}
+
+function renderSeason(){
+  const c = coverage();
+  const list = visibleShows();
+  const revisits = shows.filter(s => s.revisit || stale(s));
+  let html = "";
+
+  if (meta.sample){
+    html += '<div class="banner"><p><strong>This is a sample season</strong> — nine invented productions (and three public-domain revivals) with invented artists, so you can see how the ballot fills in. Clear it when you are ready to log your own.</p>' +
+      '<button class="btn" data-act="clear-sample">Clear sample season</button></div>';
+  }
+  if (storageNote){
+    html += '<div class="banner" style="border-color:var(--crit); border-left-color:var(--crit); background:var(--crit-soft)"><p>' + esc(storageNote) + "</p>" +
+      '<button class="btn" data-act="export-json">Download backup</button></div>';
+  }
+
+  html += '<div class="toolbar">' +
+    '<div class="field"><label for="fFilter">Show me</label><select class="inp" id="fFilter" data-act="set-filter">' +
+      [["all","Every production (" + shows.length + ")"],
+       ["unseen","Not yet seen (" + c.notSeen + ")"],
+       ["unassessed","Seen, not scored (" + c.unassessed + ")"],
+       ["contenders","Contenders, 8 and up"],
+       ["revisit","Worth a second look (" + c.revisit + ")"],
+       ["recused","Recused (" + c.recused + ")"]]
+      .map(([v, l]) => '<option value="' + v + '"' + (filter === v ? " selected" : "") + ">" + esc(l) + "</option>").join("") +
+    "</select></div>" +
+    '<div class="field"><label for="fSort">Order by</label><select class="inp" id="fSort" data-act="set-sort">' +
+      [["seen","Date seen"],["score","My score"],["opened","Opening night"],["title","Title"]]
+      .map(([v, l]) => '<option value="' + v + '"' + (sortBy === v ? " selected" : "") + ">" + l + "</option>").join("") +
+    "</select></div>" +
+    '<div class="field" style="flex:0 0 128px"><label for="fEligible">Eligible this season</label>' +
+      '<input class="inp mono" id="fEligible" type="number" min="0" max="200" value="' + (+meta.eligibleTotal || 0) + '" data-field="meta:eligibleTotal" data-type="number" data-rerender="1"></div>' +
+    '<div class="spacer"></div>' +
+    '<button class="btn btn-primary" data-act="new-show">+ Log a production</button>' +
+  "</div>";
+
+  if (c.unlogged > 0){
+    html += '<p class="hint" style="margin:-6px 0 16px">' + c.unlogged + " eligible production" + (c.unlogged === 1 ? "" : "s") +
+      " opened this season that you have not logged yet. Log them as they are announced so nothing is missed in April.</p>";
+  }
+  if (revisits.length){
+    html += '<div class="banner" style="border-color:var(--line-2); border-left-color:var(--accent); background:var(--accent-soft)">' +
+      '<p><strong>Worth seeing again before the meeting.</strong> ' +
+      revisits.map(s => italic(titleOf(s)) + ' <span class="mono" style="font-size:12px; color:var(--text-3)">' +
+        (daysSince(s.seen) !== null ? daysSince(s.seen) + "d ago" : "not seen") + "</span>").join(" &middot; ") +
+      "</p></div>";
+  }
+
+  html += '<div class="ledger"><div class="lhead">' +
+    "<div>Seen</div><div>Production</div><div>Category</div><div>Overall</div><div>Scored</div><div>Flags</div></div>";
+
+  if (!list.length){
+    html += '<div class="empty"><h3>Nothing here yet</h3><p>Log a production the night you see it — the note you write in the lobby is the one you will trust in April.</p></div>';
+  } else {
+    for (const s of list){
+      const d = daysSince(s.seen);
+      const craftN = CRAFTS.filter(x => s.crafts[x.key].score > 0).length;
+      const castN = s.performances.filter(p => p.score > 0).length;
+      const flags = [];
+      if (!s.eligible) flags.push('<span class="chip chip-quiet">Not eligible</span>');
+      if (s.recused) flags.push('<span class="chip chip-accent">Recused</span>');
+      if (!s.seen) flags.push('<span class="chip chip-warn">Not seen</span>');
+      else if (!assessed(s)) flags.push('<span class="chip chip-crit">Unscored</span>');
+      if (s.revisit || stale(s)) flags.push('<span class="chip chip-warn">Revisit</span>');
+      if (s.performances.some(p => p.disputed)) flags.push('<span class="chip chip-quiet">Billing ?</span>');
+
+      html += '<button class="lrow" data-act="open-show" data-id="' + s.id + '">' +
+        '<div class="c-seen seen">' + (s.seen ? fmtDate(s.seen) + "<small>" + d + " days ago</small>" : '<span style="color:var(--text-3)">—</span>') + "</div>" +
+        '<div class="c-title"><div class="title"><em>' + esc(titleOf(s)) + "</em></div>" +
+          '<div class="sub">' + [esc(s.theatre), s.opened ? "opened " + fmtDate(s.opened) : ""].filter(Boolean).join(" &middot; ") + "</div></div>" +
+        '<div class="c-type"><span class="chip">' + TYPES[s.type].label + "</span></div>" +
+        '<div class="c-rate">' + faderStatic(s.overall) + "</div>" +
+        '<div class="c-counts counts">' + craftN + " <small>craft</small> &middot; " + castN + " <small>cast</small></div>" +
+        '<div class="c-flags flags">' + (flags.join("") || '<span class="chip chip-good">Assessed</span>') + "</div>" +
+      "</button>";
+    }
+  }
+  html += "</div>";
+  return html;
+}
+
+/* ============================================================
+   Assessment sheet
+   ============================================================ */
+function renderSheet(){
+  const wrap = $("#sheetWrap");
+  const s = openShowId ? getShow(openShowId) : null;
+  if (!s){ wrap.hidden = true; wrap.innerHTML = ""; document.body.style.overflow = ""; return; }
+  const form = formOf(s);
+  const f = (k) => "show:" + s.id + ":" + k;
+
+  const crafts = CRAFTS.filter(c => c.form === "any" || c.form === form).map(c => {
+    const v = s.crafts[c.key];
+    const gated = c.gate && s[c.gate] === false;
+    return '<div class="craft-row' + (gated ? " off" : "") + '">' +
+      '<div class="craft-name">' + c.label + (gated ? ' <span class="chip chip-quiet" style="margin-left:4px">ineligible</span>' : "") + "</div>" +
+      '<input class="inp" placeholder="Credited to" value="' + esc(v.credit) + '" data-field="' + f("craft:" + c.key + ":credit") + '" aria-label="' + c.label + ' credit">' +
+      faderHTML(f("craft:" + c.key + ":score"), v.score, c.label + " score") +
+      '<input class="inp" placeholder="What made it" value="' + esc(v.note) + '" data-field="' + f("craft:" + c.key + ":note") + '" aria-label="' + c.label + ' note">' +
+    "</div>";
+  }).join("");
+
+  const perfs = s.performances.map(p => {
+    const pf = (k) => f("perf:" + p.id + ":" + k);
+    const sel = (key, opts) => '<select class="inp" data-field="' + pf(key) + '" aria-label="' + key + '">' +
+      opts.map(([v, l]) => '<option value="' + v + '"' + (p[key] === v ? " selected" : "") + ">" + l + "</option>").join("") + "</select>";
+    return '<div class="perf-row">' +
+      '<input class="inp p-name" placeholder="Performer" value="' + esc(p.name) + '" data-field="' + pf("name") + '" aria-label="Performer name">' +
+      '<input class="inp" placeholder="Role" value="' + esc(p.role) + '" data-field="' + pf("role") + '" aria-label="Role">' +
+      sel("billing", [["leading","Leading"],["featured","Featured"]]) +
+      sel("division", [["actor","Actor"],["actress","Actress"]]) +
+      faderHTML(pf("score"), p.score, "Score for " + (p.name || "performer")) +
+      '<input class="inp p-note" placeholder="The moment" value="' + esc(p.note) + '" data-field="' + pf("note") + '" aria-label="Performance note">' +
+      '<button class="x" data-act="del-perf" data-id="' + s.id + '" data-pid="' + p.id + '" aria-label="Remove ' + esc(p.name || "performer") + '">&times;</button>' +
+    "</div>";
+  }).join("");
+
+  const musical = form === "musical";
+  const check = (key, label, hint) =>
+    '<label style="display:flex; gap:8px; align-items:flex-start; font-size:13.5px; line-height:1.4">' +
+    '<input type="checkbox" data-field="' + f(key) + '" data-type="bool"' + (s[key] ? " checked" : "") + ' style="margin-top:3px">' +
+    "<span>" + label + (hint ? '<br><span class="hint">' + hint + "</span>" : "") + "</span></label>";
+
+  wrap.hidden = false;
+  document.body.style.overflow = "hidden";
+  wrap.innerHTML = '<div class="sheet" role="dialog" aria-modal="true" aria-label="Assessment: ' + esc(titleOf(s)) + '">' +
+    '<div class="sheet-bar">' +
+      '<span class="eyebrow">Assessment sheet</span>' +
+      '<button class="btn btn-sm" data-act="close-sheet">Done</button>' +
+    "</div>" +
+    '<div class="sheet-body">' +
+
+    '<div class="grid2">' +
+      '<div class="field" style="grid-column:1/-1"><label for="t-' + s.id + '">Production</label>' +
+        '<input class="inp" id="t-' + s.id + '" value="' + esc(s.title) + '" data-field="' + f("title") + '" placeholder="Title as billed" style="font-family:var(--display); font-size:21px; padding:8px 10px"></div>' +
+      '<div class="field"><label for="ty-' + s.id + '">Counts as</label><select class="inp" id="ty-' + s.id + '" data-field="' + f("type") + '" data-rerender="1">' +
+        Object.entries(TYPES).map(([v, t]) => '<option value="' + v + '"' + (s.type === v ? " selected" : "") + ">" + t.label + "</option>").join("") + "</select></div>" +
+      '<div class="field"><label for="th-' + s.id + '">Theatre</label><input class="inp" id="th-' + s.id + '" value="' + esc(s.theatre) + '" data-field="' + f("theatre") + '"></div>' +
+      '<div class="field"><label for="op-' + s.id + '">Opening night</label><input class="inp mono" id="op-' + s.id + '" type="date" value="' + esc(s.opened) + '" data-field="' + f("opened") + '"></div>' +
+      '<div class="field"><label for="sn-' + s.id + '">Date I saw it</label><input class="inp mono" id="sn-' + s.id + '" type="date" value="' + esc(s.seen) + '" data-field="' + f("seen") + '" data-rerender="1"></div>' +
+    "</div>" +
+
+    '<div class="block"><h3>The night itself</h3>' +
+      '<p class="hint">Write these in the cab home. In April this is all you will have.</p>' +
+      '<div class="field" style="margin-bottom:14px"><label>Overall production</label>' + faderHTML(f("overall"), s.overall, "Overall score") + "</div>" +
+      '<div class="field" style="margin-bottom:14px"><label for="v-' + s.id + '">The verdict, in one line</label>' +
+        '<input class="inp" id="v-' + s.id + '" value="' + esc(s.verdict) + '" data-field="' + f("verdict") + '" placeholder="What this production is, and whether it works"></div>' +
+      '<div class="field"><label for="m-' + s.id + '">What will still be in your head in April</label>' +
+        '<textarea class="inp" id="m-' + s.id + '" data-field="' + f("memory") + '" placeholder="The image, the sound, the two minutes you would describe to someone who was not there">' + esc(s.memory) + "</textarea></div>" +
+    "</div>" +
+
+    '<div class="block"><h3>Elements</h3>' +
+      '<p class="hint">Name the credit as billed — the credit is what appears on the ballot, not the department.' +
+      (musical ? " Orchestrations are open to revivals; book and original score are not, unless newly written for this production." : "") + "</p>" +
+      crafts +
+      (musical ? '<div class="grid2" style="margin-top:16px; padding-top:14px; border-top:1px solid var(--line)">' +
+        check("bookEligible", "Book is eligible", "A revival's existing book is not.") +
+        check("scoreEligible", "Score is eligible as original", "A score assembled from released songs is not original.") +
+      "</div>" : "") +
+    "</div>" +
+
+    '<div class="block"><h3>Performances</h3>' +
+      '<p class="hint">Billing decides leading or featured, and billing is sometimes wrong. Flag the ones you intend to argue about.</p>' +
+      (perfs || '<p class="hint" style="padding:8px 0">No performances recorded yet.</p>') +
+      '<button class="btn btn-sm" data-act="add-perf" data-id="' + s.id + '" style="margin-top:12px">+ Add a performance</button>' +
+      (s.performances.length ? '<div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--line)">' +
+        s.performances.map(p =>
+          '<label style="display:inline-flex; gap:6px; align-items:center; font-size:12.5px; margin:0 14px 6px 0">' +
+          '<input type="checkbox" data-field="' + f("perf:" + p.id + ":disputed") + '" data-type="bool"' + (p.disputed ? " checked" : "") + ">" +
+          "<span>Billing disputed: " + esc(p.name || "unnamed") + "</span></label>").join("") +
+      "</div>" : "") +
+    "</div>" +
+
+    '<div class="block"><h3>Eligibility and conflicts</h3>' +
+      '<div class="grid2" style="margin-bottom:12px">' +
+        check("eligible", "Eligible this season", "Opened inside the eligibility window.") +
+        check("recused", "I am recused from this production", "Removes it from every category on your ballot.") +
+        check("revisit", "Mark for a second viewing", "") +
+      "</div>" +
+      '<div class="field"><label for="rn-' + s.id + '">Nature of the conflict</label>' +
+        '<input class="inp" id="rn-' + s.id + '" value="' + esc(s.recusalNote) + '" data-field="' + f("recusalNote") + '" placeholder="Recorded for the committee"></div>' +
+    "</div>" +
+
+    '<div style="display:flex; justify-content:flex-end; margin-top:22px">' +
+      '<button class="btn btn-danger btn-sm" data-act="del-show" data-id="' + s.id + '">Delete this production</button>' +
+    "</div>" +
+
+    "</div></div>";
+
+  if (pendingFocus){
+    pendingFocus = false;
+    const first = wrap.querySelector("input");
+    if (first) first.focus();
+  }
+}
+
+/* ============================================================
+   Ballot view
+   ============================================================ */
+function renderBallot(){
+  const recused = shows.filter(s => s.recused);
+  let html = '<div class="banner" style="border-color:var(--line-2); border-left-color:var(--brass); background:var(--surface)">' +
+    "<p>Every production you have seen and scored appears in the categories it is eligible for, ranked by your own score. " +
+    "<strong>Nominate</strong> fills a slot, <strong>hold</strong> keeps a candidate in the argument, <strong>pass</strong> clears them out of the way. " +
+    "Set each category's slate size on the right." +
+    (recused.length ? " You are recused from " + recused.map(s => italic(titleOf(s))).join(", ") + ", so they appear nowhere below." : "") +
+    "</p></div>";
+
+  for (const group of GROUPS){
+    const cats = CATEGORIES.filter(c => c.group === group);
+    html += '<div class="sec"><div class="sec-head"><h2>' + esc(group) + "</h2>" +
+      '<span class="eyebrow">' + cats.filter(c => catHealth(c).state === "set").length + " of " + cats.length + " set</span></div>";
+
+    for (const cat of cats){
+      const h = catHealth(cat);
+      const open = openCats.has(cat.id);
+      const chipCls = h.state === "set" ? "chip-good"
+        : (h.state === "empty" || h.state === "thin" || h.state === "over") ? "chip-crit"
+        : h.state === "part" ? "chip-warn" : "chip-quiet";
+      html += '<div class="cat">' +
+        '<button class="cat-head" data-act="toggle-cat" data-id="' + cat.id + '" aria-expanded="' + open + '">' +
+          '<span class="cat-name">' + esc(cat.name) + "</span>" +
+          '<span class="cat-meta">' + (h.label ? '<span class="chip ' + chipCls + '">' + esc(h.label) + "</span>" : "") +
+            '<span class="cat-count">' + h.noms + "/" + h.target + " nominated &middot; " + h.cands.length + " eligible</span></span>" +
+          '<span class="eyebrow">' + (open ? "Close" : "Open") + "</span>" +
+        "</button>";
+
+      if (open){
+        html += '<div class="cat-body">' +
+          '<div style="display:flex; justify-content:flex-end; padding:8px 0 2px">' +
+            '<label class="target">Slate size <input class="inp mono" type="number" min="1" max="10" value="' + h.target +
+            '" data-field="target:' + cat.id + '" data-type="number" data-rerender="1"></label></div>';
+        if (!h.cands.length){
+          html += '<p class="hint" style="padding:10px 0 4px">Nothing eligible yet. A candidate appears here once the production is seen, scored, and carries a credit in this category.</p>';
+        } else {
+          for (const c of rank(h.cands)){
+            const pick = pickOf(cat.id, c.key);
+            const d = daysSince(c.seen);
+            html += '<div class="cand' + (pick === "nom" ? " is-nom" : pick === "pass" ? " is-pass" : "") + '">' +
+              '<div class="cand-score' + (c.score ? "" : " none") + '">' + (c.score || "—") + "</div>" +
+              "<div><div class=\"cand-who\">" + esc(c.who) +
+                (c.disputed ? ' <span class="chip chip-quiet">billing disputed</span>' : "") + "</div>" +
+                '<div class="cand-where">' + (c.where ? italic(c.where) : "") +
+                  (c.role ? " &middot; " + esc(c.role) : "") +
+                  (d !== null ? ' <span class="mono" style="font-size:11.5px; color:var(--text-3)">seen ' + fmtDate(c.seen) + ", " + d + "d ago</span>" : "") + "</div>" +
+                (c.note ? '<div class="cand-note">' + esc(c.note) + "</div>" : "") +
+              "</div>" +
+              '<div class="cand-acts">' +
+                ["nom","hold","pass"].map(v => '<button class="pick ' + v + '" data-act="pick" data-cat="' + cat.id + '" data-key="' + esc(c.key) +
+                  '" data-val="' + v + '" aria-pressed="' + (pick === v) + '">' + (v === "nom" ? "Nominate" : v === "hold" ? "Hold" : "Pass") + "</button>").join("") +
+              "</div></div>";
+          }
+        }
+        html += "</div>";
+      }
+      html += "</div>";
+    }
+    html += "</div>";
+  }
+  return html;
+}
+
+/* ============================================================
+   Nominations report
+   ============================================================ */
+function tally(){
+  const counts = {};
+  for (const cat of CATEGORIES){
+    for (const n of nomineesFor(cat)) counts[n.showId] = (counts[n.showId] || 0) + 1;
+  }
+  return Object.entries(counts)
+    .map(([id, n]) => ({show:getShow(id), n}))
+    .filter(x => x.show)
+    .sort((a, b) => (b.n - a.n) || titleOf(a.show).localeCompare(titleOf(b.show)));
+}
+
+function renderReport(){
+  const problems = CATEGORIES.map(c => ({cat:c, h:catHealth(c)})).filter(x => x.h.state !== "set");
+  let html = "";
+  if (problems.length){
+    html += '<div class="banner no-print"><p><strong>' + problems.length + " categor" + (problems.length === 1 ? "y is" : "ies are") +
+      " not settled.</strong> " + problems.slice(0, 6).map(p => esc(p.cat.name) + " (" + esc(p.h.label || (p.h.noms + "/" + p.h.target)) + ")").join("; ") +
+      (problems.length > 6 ? "; and " + (problems.length - 6) + " more." : ".") + "</p>" +
+      '<button class="btn" data-act="tab" data-tab="ballot">Back to the ballot</button></div>';
+  }
+
+  html += '<div class="report"><div class="report-head"><span class="eyebrow">Nominating ballot</span>' +
+    "<h2>" + esc(meta.label) + "</h2>" +
+    '<p class="mono" style="font-size:12px; color:var(--text-3); margin:8px 0 0">' +
+      shows.filter(s => s.seen).length + " productions seen &middot; " + tally().reduce((a, x) => a + x.n, 0) + " nominations placed &middot; drawn up " +
+      new Date().toLocaleDateString(undefined, {year:"numeric", month:"long", day:"numeric"}) + "</p></div>";
+
+  for (const group of GROUPS){
+    html += '<div class="rgroup"><h3>' + esc(group) + "</h3>";
+    for (const cat of CATEGORIES.filter(c => c.group === group)){
+      const noms = nomineesFor(cat);
+      html += '<div class="rcat"><h4>' + esc(cat.name) + "</h4>";
+      if (!noms.length){
+        html += '<p class="none">No nominees chosen — ' + catHealth(cat).cands.length + " eligible</p>";
+      } else {
+        html += "<ol>" + noms.map(n => "<li>" + esc(n.who) +
+          (n.where ? " — " + italic(n.where) : "") +
+          (n.role ? " <span style=\"color:var(--text-3)\">as " + esc(n.role) + "</span>" : "") + "</li>").join("") + "</ol>";
+      }
+      html += "</div>";
+    }
+    html += "</div>";
+  }
+
+  const t = tally();
+  if (t.length){
+    html += '<div class="rgroup"><h3>Nominations by production</h3><div class="tbl-scroll"><table class="tally">' +
+      "<thead><tr><th>Production</th><th>Category</th><th class=\"n\">Noms</th></tr></thead><tbody>" +
+      t.map(x => "<tr><td><em>" + esc(titleOf(x.show)) + "</em></td><td>" + TYPES[x.show.type].label + '</td><td class="n">' + x.n + "</td></tr>").join("") +
+      "</tbody></table></div></div>";
+  }
+  html += "</div>";
+
+  html += '<div class="exports no-print">' +
+    '<button class="btn btn-primary" data-act="export-txt">Download the ballot</button>' +
+    '<button class="btn" data-act="export-json">Download a full backup</button>' +
+    '<button class="btn" data-act="import">Restore from backup</button>' +
+    '<button class="btn btn-ghost" data-act="print">Print</button>' +
+    '<input type="file" id="importFile" accept="application/json,.json" hidden></div>' +
+    '<p class="hint no-print" style="margin-top:10px; max-width:60ch">The ballot download is the plain-text list above. The backup is everything — every score, note and conflict — and is the file to keep.</p>';
+  return html;
+}
+
+function ballotText(){
+  const L = [];
+  L.push(meta.label.toUpperCase());
+  L.push("NOMINATING BALLOT — drawn up " + new Date().toISOString().slice(0, 10));
+  L.push("");
+  for (const group of GROUPS){
+    L.push(group.toUpperCase());
+    L.push("-".repeat(group.length));
+    for (const cat of CATEGORIES.filter(c => c.group === group)){
+      const noms = nomineesFor(cat);
+      L.push("");
+      L.push(cat.name);
+      if (!noms.length) L.push("   [no nominees chosen — " + catHealth(cat).cands.length + " eligible]");
+      else noms.forEach((n, i) => L.push("   " + (i + 1) + ". " + n.who +
+        (n.where ? " — " + n.where : "") + (n.role ? " (" + n.role + ")" : "")));
+    }
+    L.push("");
+  }
+  const t = tally();
+  if (t.length){
+    L.push("NOMINATIONS BY PRODUCTION");
+    L.push("-------------------------");
+    t.forEach(x => L.push("   " + String(x.n).padStart(2) + "  " + titleOf(x.show)));
+    L.push("");
+  }
+  const rec = shows.filter(s => s.recused);
+  if (rec.length){
+    L.push("RECUSED");
+    rec.forEach(s => L.push("   " + titleOf(s) + (s.recusalNote ? " — " + s.recusalNote : "")));
+  }
+  return L.join("\n");
+}
+
+async function download(filename, text){
+  try {
+    const dl = (window.claude && claude.use) ? await claude.use("downloads") : null;
+    if (dl){ await dl.save({filename, data:text}); return; }
+  } catch (e){
+    if (e && e.code === "declined") return;
+    toast("That download did not go through.");
+    return;
+  }
+  const url = URL.createObjectURL(new Blob([text], {type:"application/octet-stream"}));
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/* ============================================================
+   Field binding
+   ============================================================ */
+function setField(spec, value, type){
+  if (type === "number") value = value === "" ? 0 : Math.max(0, +value || 0);
+  if (type === "bool") value = !!value;
+  const p = spec.split(":");
+
+  if (p[0] === "meta"){ meta[p[1]] = value; queueSave("meta"); paintStrip(); return; }
+  if (p[0] === "target"){ meta.targets[p[1]] = Math.min(10, Math.max(1, +value || 5)); queueSave("meta"); return; }
+
+  if (p[0] === "show"){
+    const s = getShow(p[1]);
+    if (!s) return;
+    if (p[2] === "craft"){ s.crafts[p[3]][p[4]] = p[4] === "score" ? +value || 0 : value; }
+    else if (p[2] === "perf"){
+      const pf = s.performances.find(x => x.id === p[3]);
+      if (!pf) return;
+      pf[p[4]] = p[4] === "score" ? +value || 0 : value;
+    }
+    else if (p[2] === "type"){
+      s.type = value;
+      if (value === "revival-musical"){ s.bookEligible = false; s.scoreEligible = false; }
+      if (value === "new-musical"){ s.bookEligible = true; s.scoreEligible = true; }
+    }
+    else s[p[2]] = value;
+    if (meta.sample){ meta.sample = false; queueSave("meta"); }
+    queueSave("show", s.id);
+    paintStrip();
+  }
+}
+
+document.addEventListener("input", e => {
+  const t = e.target;
+  if (!t.dataset || !t.dataset.field) return;
+  // Record every keystroke, re-render nothing: a re-render here would take the caret with it.
+  setField(t.dataset.field, t.type === "checkbox" ? t.checked : t.value, t.dataset.type);
+});
+document.addEventListener("change", e => {
+  const t = e.target;
+  if (!t.dataset || !t.dataset.field) return;
+  setField(t.dataset.field, t.type === "checkbox" ? t.checked : t.value, t.dataset.type);
+  if (!t.dataset.rerender && t.type !== "checkbox") return;
+  const sheetOpen = !!openShowId;
+  render({keepSheet:sheetOpen});
+  if (sheetOpen) renderSheet();
+});
+
+/* ---- faders ---- */
+function faderValueFromEvent(node, clientX){
+  const r = node.getBoundingClientRect();
+  const ratio = (clientX - r.left) / r.width;
+  return Math.min(10, Math.max(0, Math.ceil(ratio * 10)));
+}
+document.addEventListener("click", e => {
+  const fader = e.target.closest(".fader[data-fader]");
+  if (!fader) return;
+  e.stopPropagation();
+  const v = faderValueFromEvent(fader, e.clientX);
+  paintFader(fader, v);
+  setField(fader.dataset.fader, v, "number");
+}, true);
+document.addEventListener("keydown", e => {
+  const fader = e.target.closest && e.target.closest(".fader[data-fader]");
+  if (!fader) return;
+  const cur = +fader.dataset.value || 0;
+  let v = cur;
+  if (e.key === "ArrowRight" || e.key === "ArrowUp") v = Math.min(10, cur + 1);
+  else if (e.key === "ArrowLeft" || e.key === "ArrowDown") v = Math.max(0, cur - 1);
+  else if (e.key === "Home") v = 0;
+  else if (e.key === "End") v = 10;
+  else if (/^[0-9]$/.test(e.key)) v = e.key === "0" ? 10 : +e.key;
+  else return;
+  e.preventDefault();
+  paintFader(fader, v);
+  setField(fader.dataset.fader, v, "number");
+});
+
+/* ---- clicks ---- */
+document.addEventListener("click", async e => {
+  const el = e.target.closest("[data-act]");
+  if (!el) {
+    if (e.target.id === "sheetWrap"){ openShowId = null; renderSheet(); render(); }
+    return;
+  }
+  const act = el.dataset.act;
+
+  if (act === "tab"){ tab = el.dataset.tab; render(); window.scrollTo({top:0, behavior:"instant"}); return; }
+  if (act === "set-filter"){ filter = el.value; render(); return; }
+  if (act === "set-sort"){ sortBy = el.value; render(); return; }
+
+  if (act === "new-show"){
+    const s = newShow({});
+    shows.push(s);
+    if (meta.sample){ meta.sample = false; queueSave("meta"); }
+    flushSave("show", s.id);
+    openShowId = s.id; pendingFocus = true;
+    renderSheet(); render({keepSheet:true});
+    return;
+  }
+  if (act === "open-show"){ openShowId = el.dataset.id; renderSheet(); return; }
+  if (act === "close-sheet"){ openShowId = null; renderSheet(); render(); return; }
+  if (act === "del-show"){
+    const s = getShow(el.dataset.id);
+    if (!s) return;
+    if (!confirm("Delete " + titleOf(s) + " and every score and note on it? This cannot be undone.")) return;
+    await removeShow(el.dataset.id);
+    openShowId = null; renderSheet(); render();
+    toast("Removed from the ledger");
+    return;
+  }
+  if (act === "add-perf"){
+    const s = getShow(el.dataset.id);
+    if (!s) return;
+    s.performances.push({id:uid(), name:"", role:"", billing:"leading", division:"actor", score:0, note:"", disputed:false});
+    flushSave("show", s.id);
+    renderSheet();
+    const rows = $("#sheetWrap").querySelectorAll(".perf-row .p-name");
+    if (rows.length) rows[rows.length - 1].focus();
+    return;
+  }
+  if (act === "del-perf"){
+    const s = getShow(el.dataset.id);
+    if (!s) return;
+    s.performances = s.performances.filter(p => p.id !== el.dataset.pid);
+    for (const catId in ballot.picks){
+      if (ballot.picks[catId]) delete ballot.picks[catId][s.id + ":perf:" + el.dataset.pid];
+    }
+    flushSave("show", s.id); queueSave("ballot");
+    renderSheet();
+    return;
+  }
+  if (act === "toggle-cat"){
+    const id = el.dataset.id;
+    if (openCats.has(id)) openCats.delete(id); else openCats.add(id);
+    render();
+    return;
+  }
+  if (act === "pick"){
+    const {cat, key, val} = el.dataset;
+    setPick(cat, key, pickOf(cat, key) === val ? "" : val);
+    render();
+    return;
+  }
+  if (act === "clear-sample"){
+    if (!confirm("Clear all nine sample productions and start your own season?")) return;
+    await replaceAll({shows:[], meta:Object.assign(defaultMeta(), {label:meta.label, sample:false}), ballot:{picks:{}}});
+    render();
+    toast("Sample cleared — the season is yours");
+    return;
+  }
+  if (act === "export-txt"){
+    await download("nominating-ballot.txt", ballotText());
+    return;
+  }
+  if (act === "export-json"){
+    await download("nominators-ledger-backup.json", JSON.stringify({
+      version:1, exportedAt:new Date().toISOString(), meta:stripMeta(meta), shows, ballot,
+    }, null, 2));
+    return;
+  }
+  if (act === "import"){ $("#importFile").click(); return; }
+  if (act === "print"){ window.print(); return; }
+});
+
+document.addEventListener("change", async e => {
+  if (e.target.id !== "importFile") return;
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    if (!data || !Array.isArray(data.shows)) throw new Error("shape");
+    if (!confirm("Replace this ledger with the " + data.shows.length + " productions in that backup?")) return;
+    await replaceAll(data);
+    render();
+    toast("Restored " + data.shows.length + " productions");
+  } catch {
+    toast("That file is not a ledger backup.");
+  }
+  e.target.value = "";
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && openShowId){ openShowId = null; renderSheet(); render(); }
+});
+
+/* ============================================================
+   Render
+   ============================================================ */
+function render(opts){
+  opts = opts || {};
+  if (openShowId && !getShow(openShowId)) openShowId = null;
+  document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === tab)));
+  $("#view").innerHTML = tab === "season" ? renderSeason() : tab === "ballot" ? renderBallot() : renderReport();
+  paintStrip();
+  if (!opts.keepSheet) renderSheet();
+}
+
+initStore()
+  .catch(() => { if (!shows.length) seedSample(); })
+  .then(() => { render(); })
+  .catch(() => { render(); });
+</script>
+</body>
+</html>
