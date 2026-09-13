@@ -24,6 +24,12 @@ checked against WCAG AA in the browser, sized and weighted, not by eye.
 uppercase, generously letterspaced, and used *selectively*. Source Sans 3 for
 everything read at length, at 17px with a 1.6 line height.
 
+**Mobile first.** Every breakpoint is `min-width`: the base stylesheet *is* the
+phone layout — one column, stacked rows, thumb-sized controls, 16px inputs so iOS
+does not zoom — and wider viewports add columns on top. Density returns only at
+`(min-width:900px) and (pointer:fine)`, so a large touch screen keeps comfortable
+targets.
+
 **Layout.** Crisp rectangles, zero radius, hairline rules instead of boxes, and a
 lot of air. The Season page opens on an asymmetric hero: one dominant message
 sized to the state of the season, one primary action, and *Opening next* beside
@@ -60,6 +66,9 @@ and how many categories have a thin field.
 
 Filters cut the ledger down to what needs work: not yet seen, seen but nothing
 marked, something marked consider, worth a second look, recused.
+
+Three sections, named for the work: **Season** (log what you saw), **Ballot**
+(build the slates), **Nominations** (the finished packet).
 
 ### The assessment sheet
 
