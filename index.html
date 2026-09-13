@@ -296,17 +296,17 @@ textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
 /* Phone first: one column, everything stacked and full width. */
 .lhead{display:none}
 .lrow{
-  display:grid; grid-template-columns:minmax(0,1fr); gap:8px; align-items:start; padding:18px 4px;
+  display:grid; grid-template-columns:minmax(0,1fr); gap:8px; align-items:start; padding:18px 16px;
   position:relative;
 }
-.lrow .c-title{grid-column:1/-1; padding-right:78px}
+.lrow .c-title{grid-column:1/-1; padding-right:88px}
 .lrow .c-awards{grid-column:1/-1}
 .lrow .c-flags{grid-column:1/-1}
 .lhead{background:none; border-bottom:1px solid var(--line-2); padding-block:12px}
 .lrow{border-bottom:1px solid var(--line); text-align:left; width:100%; background:none; border-left:0; border-right:0; border-top:0; cursor:pointer; font:inherit; color:inherit}
 /* One date, always the same shape, always the same corner. */
 .lrow-when{
-  position:absolute; top:18px; right:4px; text-align:right;
+  position:absolute; top:18px; right:16px; text-align:right;
   font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase;
   color:var(--text-3); white-space:nowrap;
 }
@@ -345,11 +345,11 @@ textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
 @media (min-width:900px){
   .lhead, .lrow{
     display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1.25fr) minmax(0,96px);
-    gap:26px; align-items:center; padding:20px 4px;
+    gap:26px; align-items:center; padding:20px 20px;
   }
   .lrow .c-title, .lrow .c-awards, .lrow .c-flags{grid-column:auto}
   .lrow .c-title{padding-right:0}
-  .lrow-when{top:20px}
+  .lrow-when{top:20px; right:20px}
 }
 
 /* ---- section heads ---- */
@@ -399,13 +399,13 @@ textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
 
 /* ---- ballot ---- */
 .cat{border:0; border-bottom:1px solid var(--line); background:none; margin:0; overflow:hidden}
-.cat-head{display:grid; grid-template-columns:minmax(0,1fr); gap:8px; align-items:start; width:100%; text-align:left; background:none; border:0; padding:18px 4px; cursor:pointer; font:inherit; color:inherit}
+.cat-head{display:grid; grid-template-columns:minmax(0,1fr); gap:8px; align-items:start; width:100%; text-align:left; background:none; border:0; padding:18px 16px; cursor:pointer; font:inherit; color:inherit}
 .cat-head{transition:background .18s var(--ease)}
 .cat-head:hover{background:var(--ice)}
 .cat-name{font-family:var(--display); font-size:19px; font-weight:500; line-height:1.25; text-transform:uppercase; letter-spacing:.02em}
 .cat-meta{display:flex; gap:6px; align-items:center; flex-wrap:wrap}
 .cat-count{font-family:var(--ui); font-size:14px; color:var(--text-2); font-variant-numeric:tabular-nums; white-space:nowrap}
-.cat-body{border-top:1px solid var(--line-2); padding:0 6px 20px}
+.cat-body{border-top:1px solid var(--line-2); padding:0 16px 20px}
 .cand{display:grid; grid-template-columns:30px minmax(0,1fr); gap:10px 12px; align-items:start; padding:14px 0; border-bottom:1px solid var(--line)}
 .cand-acts{grid-column:2}
 .cand:last-child{border-bottom:0}
@@ -441,7 +441,7 @@ details.passed > summary:hover{color:var(--text)}
 .target{display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11px; color:var(--text-3)}
 .target input{width:46px; text-align:center; padding:4px; font-family:var(--mono)}
 @media (min-width:760px){
-  .cat-head{grid-template-columns:minmax(0,1fr) auto auto; gap:18px; align-items:center; padding-inline:6px}
+  .cat-head{grid-template-columns:minmax(0,1fr) auto auto; gap:18px; align-items:center; padding-inline:16px}
   .cand{grid-template-columns:34px minmax(0,1fr) auto; gap:12px; padding:12px 0}
   .cand-acts{grid-column:auto}
 }
@@ -2383,7 +2383,13 @@ function renderRecovery(){
 
 function renderSchedule(){
   const revisits = shows.filter(stale);
-  const upcoming = shows.filter(s => !s.seen && s.opened)
+  const today = new Date().toISOString().slice(0, 10);
+  // Already open and still unseen is a different kind of item than something
+  // that hasn't opened yet — one you could see tonight, the other you're
+  // waiting on. Two sections, not one list blurring the two together.
+  const running = shows.filter(s => !s.seen && s.opened && s.opened <= today)
+    .sort((a, b) => a.opened.localeCompare(b.opened));
+  const opening = shows.filter(s => !s.seen && s.opened && s.opened > today)
     .sort((a, b) => a.opened.localeCompare(b.opened));
 
   const booked = diary();
@@ -2401,8 +2407,7 @@ function renderSchedule(){
             '<h1 class="hero-title"><button class="titlelink" data-act="open-show" data-id="' + booked[0].id + '">' +
               esc(titleOf(booked[0])) + "</button></h1>" +
             (booked[0].theatre ? '<p class="hero-msg">At ' + esc(booked[0].theatre) + "</p>" : "")
-          : '<h1 class="hero-title">Nothing booked</h1>' +
-            '<p class="hero-msg">Open a production from the Season tab and set the night you are going &mdash; it will appear here and can go straight to your calendar.</p>') +
+          : '<h1 class="hero-title">Nothing booked</h1>') +
         (late.length || towriteUp.length
           ? '<div class="hero-nudges">' +
             (late.length
@@ -2453,18 +2458,27 @@ function renderSchedule(){
       "</p></div>";
   }
 
-  html += '<div class="sec"><div class="sec-head"><h2>What’s opening</h2>' +
-    '<span class="eyebrow">' + upcoming.length + " not yet seen</span></div>";
-  if (!upcoming.length){
-    html += '<div class="empty"><h3>Nothing on the calendar</h3>' +
-      '<p>Open a production from the Season tab and set a date &mdash; it will appear here in order.</p></div>';
+  const scheduleRow = s =>
+    '<button data-act="open-show" data-id="' + s.id + '">' +
+      '<span class="u-d">' + esc(s.booked ? bookedShort(s) : fmtDate(s.opened)) + "</span>" +
+      '<span><span class="u-t">' + esc(titleOf(s)) + "</span>" +
+      '<span class="u-s">' + [esc(s.theatre), s.booked ? "Booked" : TYPES[s.type].label].filter(Boolean).join(" &middot; ") + "</span></span>" +
+    "</button>";
+
+  html += '<div class="sec"><div class="sec-head"><h2>Now running</h2>' +
+    '<span class="eyebrow">' + running.length + " not yet seen</span></div>";
+  html += running.length
+    ? '<div class="upnext">' + running.map(scheduleRow).join("") + "</div>"
+    : '<p class="hint" style="padding:10px 0">Nothing currently open that you have not seen.</p>';
+  html += "</div>";
+
+  html += '<div class="sec"><div class="sec-head"><h2>Opening next</h2>' +
+    '<span class="eyebrow">' + opening.length + " scheduled</span></div>";
+  if (!opening.length){
+    html += '<div class="empty"><h3>Nothing else on the calendar</h3>' +
+      '<p>Open a production and set a date &mdash; it will appear here in order.</p></div>';
   } else {
-    html += '<div class="upnext">' + upcoming.map(s =>
-      '<button data-act="open-show" data-id="' + s.id + '">' +
-        '<span class="u-d">' + esc(s.booked ? bookedShort(s) : fmtDate(s.opened)) + "</span>" +
-        '<span><span class="u-t">' + esc(titleOf(s)) + "</span>" +
-        '<span class="u-s">' + [esc(s.theatre), s.booked ? "Booked" : TYPES[s.type].label].filter(Boolean).join(" &middot; ") + "</span></span>" +
-      "</button>").join("") + "</div>";
+    html += '<div class="upnext">' + opening.map(scheduleRow).join("") + "</div>";
   }
   html += "</div>";
   return html;
