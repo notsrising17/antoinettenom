@@ -101,13 +101,35 @@ the top, and a tally of nominations per production. Download it as plain text,
 print it, or take a full JSON backup — every score, note, and conflict — which
 is also what the restore button reads.
 
-## Where the data lives
+## Where the data lives, and how it is protected
 
-Published as a Claude Artifact, the ledger persists to the artifact's own
-private store and syncs across your devices. Opened as a local file, it uses the
-browser's local storage instead, and warns you if the browser is blocking that.
+Published as a Claude Artifact, the ledger persists to the artifact's own private
+store and syncs across your devices; it also keeps a mirror copy in the browser
+you are using. Opened as a local file, browser storage is the record.
 
-Either way the JSON backup is the copy you control. Take one before the meeting.
+Either way the JSON backup is the copy you control. Take one before the meeting —
+the app will remind you if a fortnight goes by without one.
+
+What stands between you and a lost season:
+
+- **Saves are visible.** A header indicator shows the last save; a banner that
+  stays up — not a toast that vanishes — appears the moment a write fails, on
+  either backend, and comes down when one succeeds.
+- **Nothing sits in a timer when you leave.** Local writes are synchronous.
+  Database writes are flushed on `pagehide` and when the tab is hidden, and
+  mirrored to the browser at the same moment, so a dying network cannot take the
+  edit with it.
+- **An unreadable ledger is never overwritten.** If what is in storage does not
+  parse as a ledger, the app stops and offers a recovery screen: download the raw
+  bytes, roll back to a snapshot, load your own backup, or start over. It will
+  not silently reseed over your season.
+- **Rolling snapshots.** One automatic copy a day plus one before anything
+  wholesale (an import, emptying the season), five kept. Reachable from
+  *Restore a snapshot* on the Nominations tab.
+- **Deletes can be undone.** Removing a performance offers it back for twelve
+  seconds, with its verdict and any nomination intact.
+
+Run the tests with `node --test tests/`.
 
 ## Publishing it as an Artifact
 

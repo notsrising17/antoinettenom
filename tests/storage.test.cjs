@@ -1,26 +1,12 @@
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const vm = require('node:vm');
-const path = require('node:path');
-const html = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
-const source = html.match(/<script>([\s\S]*?)<\/script>/)[1].split('\ninitStore()')[0];
+const {app: makeApp} = require('./harness.cjs');
 
+/* Same cases as before; the DOM stub now lives in the shared harness and
+   returns a distinct element per selector. */
 function app(saved) {
-  let stored = saved;
-  let fail = false;
-  const warning = {hidden:true, innerHTML:''};
-  const ctx = vm.createContext({
-    console, window:{}, setTimeout:() => 1, clearTimeout:() => {},
-    document:{addEventListener() {}, querySelector:() => warning},
-    localStorage:{getItem:() => stored, setItem:(key,value) => {
-      if (fail) throw new Error('quota');
-      stored = value;
-    }},
-  });
-  vm.runInContext(source, ctx);
-  return {run:code => vm.runInContext(code, ctx), saved:() => JSON.parse(stored),
-    fail:value => {fail=value;}, warning};
+  const a = makeApp({storage: saved ? {'nominators-ledger-v1': saved} : {}});
+  return {run: a.run, saved: a.stored, fail: a.fail, warning: a.el('#storageWarning')};
 }
 
 test('verdict is persisted without waiting for a timer', () => {

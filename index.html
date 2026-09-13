@@ -334,8 +334,31 @@ details.passed > summary:hover{color:var(--text)}
 #storageWarning{position:fixed; bottom:12px; left:0; right:0; z-index:95; max-width:680px}
 #storageWarning[hidden]{display:none}
 #storageWarning .banner{background:var(--crit-soft); border-color:var(--crit); margin:0; box-shadow:0 4px 24px #0003}
+.savestate{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--text-3); white-space:nowrap; padding:3px 0;
+}
+.savestate.is-saving{color:var(--warn)}
+.savestate.is-failed{color:var(--crit); font-weight:600}
+.toast .undo{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase;
+  background:none; border:1px solid var(--bg); color:var(--bg); cursor:pointer;
+  padding:3px 9px; border-radius:2px; margin-left:14px; font-weight:600;
+}
+.toast .undo:hover{background:var(--bg); color:var(--text)}
+.recovery{max-width:660px; margin:0 auto; padding-block:44px 60px}
+.recovery h2{font-family:var(--display); font-size:31px; letter-spacing:-.015em; margin-bottom:10px}
+.recovery p{margin-bottom:14px; color:var(--text-2)}
+.recovery .choices{display:flex; flex-direction:column; gap:10px; margin-top:22px}
+.recovery .choice{border:1px solid var(--line); border-radius:var(--r); padding:14px 16px; background:var(--surface)}
+.recovery .choice h3{font-size:15px; margin-bottom:4px}
+.recovery .choice p{font-size:13.5px; margin:0 0 10px}
+.recovery .choice.danger{border-color:var(--crit)}
+.snaps{display:flex; flex-direction:column; gap:6px}
+.snaps button{text-align:left; width:100%}
 .toast{
   position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:90;
+  display:flex; align-items:center; gap:0;
   background:var(--text); color:var(--bg); padding:9px 16px; border-radius:var(--r);
   font-family:var(--mono); font-size:12px; letter-spacing:.04em; box-shadow:var(--shadow);
 }
@@ -355,6 +378,7 @@ details.passed > summary:hover{color:var(--text)}
       <span class="eyebrow">Tony nominator &middot; season assessment ledger</span>
       <input class="season-name" id="seasonName" data-field="meta:label" aria-label="Season name" spellcheck="false">
     </div>
+    <span class="savestate" id="saveState" role="status" aria-live="polite"></span>
     <nav class="tabs" role="tablist" aria-label="Views">
       <button class="tab" role="tab" data-act="tab" data-tab="season" id="tab-season">Season</button>
       <button class="tab" role="tab" data-act="tab" data-tab="ballot" id="tab-ballot">Ballot</button>
@@ -371,7 +395,7 @@ details.passed > summary:hover{color:var(--text)}
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <footer class="wrap foot">
-  <p>Your assessments stay in this ledger. Download a backup before the nominating meeting &mdash; it is the only copy you control.</p>
+  <p>Your assessments stay in this ledger, and the ledger lives wherever you opened it &mdash; in this browser, or in the published page's own store. If that page is deleted, the season goes with it. The backup file is the only copy you control: download one before the nominating meeting.</p>
   <p>Category list and eligibility rules follow the 26 competitive Tony Award categories. Rule calls (billing, original score, revival eligibility) are judgment &mdash; the ledger flags them, you settle them.</p>
 </footer>
 <noscript><p class="wrap">This ledger needs JavaScript to record and rank a season.</p></noscript>
@@ -464,7 +488,7 @@ let filter = "all", sortBy = "opened";   // a season not yet under way reads as 
 let storageNote = "";
 
 function defaultMeta(){
-  return {label:"2026–27 Broadway season", eligibleTotal:38, targets:{}, sample:false, rosterVersion:0, dataVersion:DATA_VERSION};
+  return {label:"2026–27 Broadway season", eligibleTotal:38, targets:{}, sample:false, rosterVersion:0, dataVersion:DATA_VERSION, lastExport:"", nudgeSnoozed:""};
 }
 function uid(){ return Math.random().toString(36).slice(2,10); }
 function blankCrafts(){
@@ -513,13 +537,101 @@ const targetFor = catId => meta.targets[catId] || 5;
    it, localStorage otherwise (a file opened straight from disk).
    ============================================================ */
 const LS_KEY = "nominators-ledger-v1";
+const SNAP_PREFIX = LS_KEY + "-snapshot-";
+const SALVAGE_PREFIX = LS_KEY + "-unreadable-";
+const SNAPSHOTS_KEPT = 5;
 let db = null, saveTimers = {};
+
+/* One place that knows whether your work is safe, whichever backend is
+   running. Painted into the header and, when it goes wrong, into a banner
+   that stays up until a write succeeds. */
+const saveState = {pending:0, lastSaved:null, failed:false};
+let recovery = null;   // set when the stored ledger could not be read
+
+function markSaving(){ saveState.pending++; paintSaveState(); }
+function markSaved(){
+  saveState.pending = Math.max(0, saveState.pending - 1);
+  saveState.lastSaved = Date.now();
+  if (saveState.failed){ saveState.failed = false; storageNote = ""; paintStorageWarning(); }
+  paintSaveState();
+}
+function markFailed(message){
+  saveState.pending = Math.max(0, saveState.pending - 1);
+  saveState.failed = true;
+  storageNote = message;
+  paintSaveState();
+  paintStorageWarning();
+}
+function paintSaveState(){
+  const el = document.querySelector("#saveState");
+  if (!el) return;
+  const state = saveState.failed ? "failed" : saveState.pending ? "saving" : saveState.lastSaved ? "saved" : "";
+  el.className = "savestate is-" + (state || "idle");
+  el.textContent = state === "failed" ? "Not saved"
+    : state === "saving" ? "Saving\u2026"
+    : state === "saved" ? "Saved " + new Date(saveState.lastSaved).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"})
+    : "";
+}
+
+/* Rolling local copies, so a bad import or a mistaken bulk edit is not the
+   end of it. Cheap: a whole season is tens of kilobytes. */
+function snapshotKeys(){
+  const out = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++){
+      const k = localStorage.key(i);
+      if (k && k.startsWith(SNAP_PREFIX)) out.push(k);
+    }
+  } catch { return []; }
+  return out.sort().reverse();          // keys are prefix + ISO stamp, so this is newest first
+}
+function takeSnapshot(tag){
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const key = SNAP_PREFIX + (tag ? stamp + "--" + tag : stamp.slice(0, 10));
+  try {
+    if (!tag && localStorage.getItem(key)) return;     // one automatic copy a day is plenty
+    localStorage.setItem(key, JSON.stringify({takenAt:new Date().toISOString(), tag:tag||"daily", shows, meta, ballot}));
+    for (const stale of snapshotKeys().slice(SNAPSHOTS_KEPT)) localStorage.removeItem(stale);
+  } catch { /* a snapshot is a nicety; never let it break a save */ }
+}
+function readSnapshot(key){
+  try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
+}
+
+/* On the database backend the browser copy is a second copy, not the record:
+   it must never raise the "not saved" alarm on its own. */
+function mirrorLocal(){
+  try { localStorage.setItem(LS_KEY, JSON.stringify({shows, meta, ballot})); } catch {}
+}
 
 async function initStore(){
   try { db = (window.claude && claude.use) ? await claude.use("db") : null; }
   catch { db = null; }
-  if (db) return initDb();
-  return initLocal();
+  if (db) await initDb(); else initLocal();
+  // Every backend gets a rollback copy in the browser, including the first run.
+  if (!recovery) takeSnapshot();
+}
+
+/* Does this look like a ledger? Anything else must never be written over. */
+function readable(d){
+  return !!d && typeof d === "object" && !Array.isArray(d) && Array.isArray(d.shows);
+}
+function adopt(d){
+  shows = (d.shows||[]).map(normalizeShow);
+  meta = Object.assign(defaultMeta(), {dataVersion:0}, d.meta||{});
+  ballot = d.ballot && typeof d.ballot === "object" ? d.ballot : {picks:{}};
+  if (!ballot.picks || typeof ballot.picks !== "object") ballot.picks = {};
+}
+/* An unreadable ledger is a recovery situation, never a reason to start over:
+   keep the bytes, stop, and let the nominator decide. */
+function enterRecovery(raw){
+  let savedAs = "";
+  try {
+    savedAs = SALVAGE_PREFIX + new Date().toISOString().replace(/[:.]/g, "-");
+    localStorage.setItem(savedAs, raw);
+  } catch { savedAs = ""; }
+  recovery = {raw, savedAs, snapshots:snapshotKeys()};
+  shows = []; ballot = {picks:{}};
 }
 
 function initLocal(){
@@ -527,15 +639,13 @@ function initLocal(){
   try { raw = localStorage.getItem(LS_KEY); }
   catch { storageNote = "This browser is blocking local storage, so nothing will be kept when you close the tab. Download a backup before you leave."; }
   if (raw){
-    try {
-      const d = JSON.parse(raw);
-      shows = (d.shows||[]).map(normalizeShow);
-      meta = Object.assign(defaultMeta(), {dataVersion:0}, d.meta||{});
-      ballot = d.ballot || {picks:{}};
-      if (rosterStale() && untouched()) seedSeason();
-      migrateVerdicts();
-      writeLocal();
-    } catch { seedSeason(); }
+    let d = null;
+    try { d = JSON.parse(raw); } catch { d = null; }
+    if (!readable(d)){ enterRecovery(raw); return; }
+    adopt(d);
+    if (rosterStale() && untouched()) seedSeason();
+    migrateVerdicts();
+    writeLocal();
   } else {
     seedSeason();
     writeLocal();
@@ -545,10 +655,15 @@ function writeLocal(){
   try {
     localStorage.setItem(LS_KEY, JSON.stringify({shows, meta, ballot}));
     storageNote = "";
+    saveState.failed = false;
+    saveState.lastSaved = Date.now();
+    paintSaveState();
     paintStorageWarning();
     return true;
   } catch {
+    saveState.failed = true;
     storageNote = "Your latest changes could not be saved in this browser. Keep this tab open and download a backup before leaving.";
+    paintSaveState();
     paintStorageWarning();
     return false;
   }
@@ -591,6 +706,8 @@ async function initDb(){
     ]);
   }
 
+  mirrorLocal();
+
   db.collection("shows").onSnapshot(snap => {
     shows = snap.docs.map(d => normalizeShow(Object.assign({id:d.id}, d.data())));
     render({keepSheet:true});
@@ -618,6 +735,7 @@ async function inSeries(tasks){
 const stripMeta = m => ({
   label:m.label, eligibleTotal:+m.eligibleTotal||0, targets:m.targets||{},
   sample:!!m.sample, rosterVersion:+m.rosterVersion||0, dataVersion:+m.dataVersion||0,
+  lastExport:m.lastExport||"", nudgeSnoozed:m.nudgeSnoozed||"",
 });
 
 /* A ledger nobody has worked in yet: still the roster as delivered, nothing
@@ -661,20 +779,46 @@ function queueSave(kind, id){
 }
 function flushSave(kind, id){
   if (!db){ writeLocal(); return; }
+  delete saveTimers[kind + ":" + (id||"")];
+  let write = null;
   if (kind === "show"){
     const s = getShow(id);
-    if (s) db.doc("shows/" + id).set(showBody(s)).catch(noteWriteError);
+    write = s ? db.doc("shows/" + id).set(showBody(s)) : null;
   } else if (kind === "meta"){
-    db.doc("season/meta").set(stripMeta(meta)).catch(noteWriteError);
+    write = db.doc("season/meta").set(stripMeta(meta));
   } else if (kind === "ballot"){
-    db.doc("season/ballot").set({picks:ballot.picks}).catch(noteWriteError);
+    write = db.doc("season/ballot").set({picks:ballot.picks});
   }
+  if (!write) return;
+  markSaving();
+  mirrorLocal();          // the browser copy lands immediately, whatever the network does
+  write.then(markSaved, noteWriteError);
+}
+
+/* Nothing may be left sitting in a timer when the tab goes away. */
+function flushAllPending(){
+  for (const key of Object.keys(saveTimers)){
+    const timer = saveTimers[key];
+    if (!timer) continue;
+    clearTimeout(timer);
+    delete saveTimers[key];
+    const cut = key.indexOf(":");
+    flushSave(key.slice(0, cut), key.slice(cut + 1));
+  }
+  if (db) mirrorLocal();
+}
+if (typeof addEventListener === "function"){
+  addEventListener("pagehide", flushAllPending);
+  addEventListener("visibilitychange", () => {
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") flushAllPending();
+  });
 }
 function noteWriteError(e){
   const code = e && e.code;
-  if (code === "quota_exceeded") toast("This ledger is full. Remove a production to add another.");
-  else if (code === "revoked" || code === "not_granted") toast("Saving is switched off for this view — download a backup.");
-  else toast("That change did not save. Try again.");
+  markFailed(
+    code === "quota_exceeded" ? "This ledger is full, so your latest changes were not saved. Remove a production, and download a backup now."
+    : (code === "revoked" || code === "not_granted") ? "Saving is switched off for this view, so nothing you change here is being kept. Download a backup before you leave."
+    : "Your latest changes could not be saved. They are still on screen — download a backup before you leave.");
 }
 async function removeShow(id){
   shows = shows.filter(s => s.id !== id);
@@ -685,6 +829,7 @@ async function removeShow(id){
   else writeLocal();
 }
 async function replaceAll(data){
+  takeSnapshot("before-replace");     // the only copy of what is about to go
   const nextShows = (data.shows||[]).map(normalizeShow);
   const nextMeta = Object.assign(defaultMeta(), data.meta||{});
   const nextBallot = data.ballot || {picks:{}};
@@ -1132,12 +1277,45 @@ function paintFader(node, value){
   const read = node.parentElement.querySelector(".score-read");
   if (read){ read.textContent = value ? value : "—"; read.classList.toggle("none", !value); }
 }
-let toastTimer;
+let toastTimer, undoEntry = null;
 function toast(msg){
   const t = $("#toast");
+  undoEntry = null;
   t.textContent = msg; t.hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { t.hidden = true; }, 3200);
+}
+/* Removing something offers it back for a while rather than asking first. */
+function offerUndo(msg, restore){
+  const t = $("#toast");
+  undoEntry = {restore};
+  t.hidden = false;
+  t.innerHTML = '<span>' + esc(msg) + '</span><button class="undo" data-act="undo">Undo</button>';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; t.textContent = ""; undoEntry = null; }, 12000);
+}
+function takeUndo(){
+  if (!undoEntry) return;
+  const {restore} = undoEntry;
+  undoEntry = null;
+  clearTimeout(toastTimer);
+  const t = $("#toast"); t.hidden = true; t.textContent = "";
+  restore();
+}
+/* Ballot picks belong to the thing being removed and must come back with it. */
+function harvestPicks(prefix){
+  const held = [];
+  for (const catId in ballot.picks){
+    const cat = ballot.picks[catId] || {};
+    for (const key in cat) if (key.startsWith(prefix)){ held.push([catId, key, cat[key]]); delete cat[key]; }
+  }
+  return held;
+}
+function returnPicks(held){
+  for (const [catId, key, value] of held){
+    ballot.picks[catId] = ballot.picks[catId] || {};
+    ballot.picks[catId][key] = value;
+  }
 }
 
 function paintStrip(){
@@ -1182,6 +1360,51 @@ function visibleShows(){
   return list;
 }
 
+function renderRecovery(){
+  const browsing = recovery.browsing;
+  const snaps = recovery.snapshots.map(key => {
+    const snap = readSnapshot(key);
+    const when = snap && snap.takenAt ? new Date(snap.takenAt).toLocaleString() : key.replace(SNAP_PREFIX, "");
+    const n = snap && Array.isArray(snap.shows) ? snap.shows.length : 0;
+    return '<button class="btn" data-act="restore-snap" data-key="' + esc(key) + '">' +
+      esc(when) + " &middot; " + n + " production" + (n === 1 ? "" : "s") + "</button>";
+  }).join("");
+
+  return '<div class="recovery">' +
+    '<span class="eyebrow">' + (browsing ? "Snapshots" : "Recovery") + "</span>" +
+    "<h2>" + (browsing ? "Roll back to a snapshot" : "This ledger could not be read") + "</h2>" +
+    (browsing
+      ? "<p>The ledger keeps a rolling copy of your season, and one more each time something is replaced wholesale. Restoring swaps what is on screen for the copy you choose \u2014 a snapshot is taken of the current state first, so this is reversible too.</p>"
+      : "<p>What was in local storage is not a ledger this app understands \u2014 most likely a write " +
+        "interrupted by a crash, a closed tab, or a browser clearing data mid-save.</p>" +
+        "<p><strong>Nothing has been overwritten.</strong> Your season is still on disk exactly as it was" +
+        (recovery.savedAs ? ", and a copy has been set aside under <code>" + esc(recovery.savedAs) + "</code>" : "") +
+        ". Choose what happens next.</p>") +
+    '<div class="choices">' +
+      (browsing ? "" :
+        '<div class="choice"><h3>Download the raw file</h3>' +
+        "<p>Take the bytes away before anything else touches them. Worth doing first whichever route you take.</p>" +
+        '<button class="btn btn-primary" data-act="download-raw">Download the unreadable file</button></div>') +
+      (snaps
+        ? '<div class="choice"><h3>Restore an automatic snapshot</h3>' +
+            "<p>The ledger keeps a rolling copy. Restoring replaces what is on screen; the unreadable file stays where it is.</p>" +
+            '<div class="snaps">' + snaps + "</div></div>"
+        : '<div class="choice"><h3>No snapshots available</h3>' +
+            "<p>There are no automatic copies in this browser to fall back on.</p></div>") +
+      (browsing ? "" :
+        '<div class="choice"><h3>Restore from your own backup</h3>' +
+        "<p>If you have exported a backup, load it here.</p>" +
+        '<button class="btn" data-act="import">Choose a backup file</button>' +
+        '<input type="file" id="importFile" accept="application/json,.json" hidden></div>') +
+      (recovery.browsing ? "" :
+        '<div class="choice danger"><h3>Start an empty season</h3>' +
+        "<p>Discards what could not be read and loads the announced roster. Only do this once you have the file.</p>" +
+        '<button class="btn btn-danger" data-act="recover-fresh">Start over</button></div>') +
+    "</div>" +
+    (recovery.browsing ? '<p style="margin-top:20px"><button class="btn btn-ghost" data-act="leave-snaps">Back to the ledger</button></p>' : "") +
+  "</div>";
+}
+
 function renderSeason(){
   const c = coverage();
   const list = visibleShows();
@@ -1193,6 +1416,19 @@ function renderSeason(){
       'Titles, classifications, theatres, opening nights, credits and casting are a matter of record. Every score is zero and every note is empty — those are yours. ' +
       'Dates move, casting is added, and classifications get ruled on, so check anything you are about to rely on. More productions will be announced through the winter; raise the eligible count as they are.</p>' +
       '<button class="btn" data-act="clear-sample">Start an empty season</button></div>';
+  }
+
+  const worked = shows.some(s => s.seen);
+  const sinceExport = meta.lastExport ? (Date.now() - new Date(meta.lastExport).getTime()) / MS_DAY : Infinity;
+  const snoozed = meta.nudgeSnoozed ? (Date.now() - new Date(meta.nudgeSnoozed).getTime()) / MS_DAY : Infinity;
+  if (worked && sinceExport > 14 && snoozed > 14){
+    html += '<div class="banner" style="border-color:var(--line-2); border-left-color:var(--accent); background:var(--accent-soft)">' +
+      "<p><strong>" + (meta.lastExport
+        ? "Your last backup was " + Math.floor(sinceExport) + " days ago."
+        : "You have not taken a backup yet.") +
+      "</strong> The backup file is the only copy you control. It takes a moment.</p>" +
+      '<button class="btn btn-primary" data-act="export-json">Download a backup</button>' +
+      '<button class="btn btn-ghost" data-act="snooze-nudge">Not now</button></div>';
   }
 
   html += '<div class="toolbar">' +
@@ -1553,6 +1789,7 @@ function renderReport(){
     '<button class="btn btn-primary" data-act="export-txt">Download the ballot</button>' +
     '<button class="btn" data-act="export-json">Download a full backup</button>' +
     '<button class="btn" data-act="import">Restore from backup</button>' +
+    '<button class="btn" data-act="show-snaps">Restore a snapshot</button>' +
     '<button class="btn btn-ghost" data-act="print">Print</button>' +
     '<input type="file" id="importFile" accept="application/json,.json" hidden></div>' +
     '<p class="hint no-print" style="margin-top:10px; max-width:60ch">The ballot download is the plain-text list above. The backup is everything — every score, note and conflict — and is the file to keep.</p>';
@@ -1696,6 +1933,44 @@ document.addEventListener("click", async e => {
   }
   const act = el.dataset.act;
 
+  if (act === "undo"){ takeUndo(); return; }
+  if (act === "snooze-nudge"){
+    meta.nudgeSnoozed = new Date().toISOString();
+    queueSave("meta"); render();
+    return;
+  }
+  if (act === "download-raw"){
+    await download("unreadable-ledger.json", recovery ? recovery.raw : "");
+    return;
+  }
+  if (act === "restore-snap"){
+    const snap = readSnapshot(el.dataset.key);
+    if (!readable(snap)){ toast("That snapshot could not be read either."); return; }
+    const n = (snap.shows || []).length;
+    if (!confirm("Restore this snapshot? It replaces what is on screen with " + n + " production" + (n === 1 ? "" : "s") + ".")) return;
+    await replaceAll(snap);
+    recovery = null;
+    render();
+    toast("Restored " + n + " production" + (n === 1 ? "" : "s"));
+    return;
+  }
+  if (act === "leave-snaps"){ recovery = null; render(); return; }
+  if (act === "show-snaps"){
+    const keys = snapshotKeys();
+    if (!keys.length){ toast("No snapshots in this browser yet."); return; }
+    recovery = {raw:"", savedAs:"", snapshots:keys, browsing:true};
+    render(); window.scrollTo({top:0, behavior:"instant"});
+    return;
+  }
+  if (act === "recover-fresh"){
+    if (!confirm("Discard the unreadable ledger and start from the announced roster? Download the file first if you have not.")) return;
+    seedSeason();
+    recovery = null;
+    writeLocal();
+    render();
+    toast("Started a fresh season");
+    return;
+  }
   if (act === "tab"){ tab = el.dataset.tab; render(); window.scrollTo({top:0, behavior:"instant"}); return; }
   if (act === "set-filter"){ filter = el.value; render(); return; }
   if (act === "set-sort"){ sortBy = el.value; render(); return; }
@@ -1713,10 +1988,18 @@ document.addEventListener("click", async e => {
   if (act === "del-show"){
     const s = getShow(el.dataset.id);
     if (!s) return;
-    if (!confirm("Delete " + titleOf(s) + " and every score and note on it? This cannot be undone.")) return;
+    if (!confirm("Delete " + titleOf(s) + " and every verdict and note on it?")) return;
+    const at = shows.indexOf(s);
+    const held = harvestPicks(s.id + ":");
     await removeShow(el.dataset.id);
     openShowId = null; renderSheet(); render();
-    toast("Removed from the ledger");
+    offerUndo("Removed " + titleOf(s), async () => {
+      shows.splice(Math.min(at, shows.length), 0, s);
+      returnPicks(held);
+      if (db) flushSave("show", s.id); else writeLocal();
+      queueSave("ballot");
+      render();
+    });
     return;
   }
   if (act === "add-perf"){
@@ -1732,12 +2015,20 @@ document.addEventListener("click", async e => {
   if (act === "del-perf"){
     const s = getShow(el.dataset.id);
     if (!s) return;
-    s.performances = s.performances.filter(p => p.id !== el.dataset.pid);
-    for (const catId in ballot.picks){
-      if (ballot.picks[catId]) delete ballot.picks[catId][s.id + ":perf:" + el.dataset.pid];
-    }
+    const at = s.performances.findIndex(p => p.id === el.dataset.pid);
+    if (at < 0) return;
+    const [gone] = s.performances.splice(at, 1);
+    const held = harvestPicks(s.id + ":perf:" + gone.id);
     flushSave("show", s.id); queueSave("ballot");
     renderSheet();
+    offerUndo("Removed " + (gone.name.trim() || "the performance"), () => {
+      const back = getShow(s.id);
+      if (!back) return;
+      back.performances.splice(Math.min(at, back.performances.length), 0, gone);
+      returnPicks(held);
+      flushSave("show", back.id); queueSave("ballot");
+      renderSheet(); render({keepSheet:true});
+    });
     return;
   }
   if (act === "toggle-cat"){
@@ -1776,6 +2067,8 @@ document.addEventListener("click", async e => {
     return;
   }
   if (act === "export-json"){
+    meta.lastExport = new Date().toISOString();
+    queueSave("meta");
     await download("nominators-ledger-backup.json", JSON.stringify({
       version:1, exportedAt:new Date().toISOString(), meta:stripMeta(meta), shows, ballot,
     }, null, 2));
@@ -1791,9 +2084,10 @@ document.addEventListener("change", async e => {
   if (!file) return;
   try {
     const data = JSON.parse(await file.text());
-    if (!data || !Array.isArray(data.shows)) throw new Error("shape");
+    if (!readable(data)) throw new Error("shape");
     if (!confirm("Replace this ledger with the " + data.shows.length + " productions in that backup?")) return;
     await replaceAll(data);
+    recovery = null;
     render();
     toast("Restored " + data.shows.length + " productions");
   } catch {
@@ -1812,9 +2106,19 @@ document.addEventListener("keydown", e => {
 function render(opts){
   opts = opts || {};
   if (openShowId && !getShow(openShowId)) openShowId = null;
-  document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === tab)));
-  $("#view").innerHTML = tab === "season" ? renderSeason() : tab === "ballot" ? renderBallot() : renderReport();
-  paintStrip();
+  document.querySelectorAll(".tab").forEach(t => {
+    t.setAttribute("aria-selected", String(t.dataset.tab === tab));
+    t.hidden = !!recovery;
+  });
+  // Recovery owns the whole window: nothing else in the chrome should invite a click.
+  for (const sel of [".strip", "#seasonName", "#saveState"]){
+    const el = document.querySelector(sel);
+    if (el) el.hidden = !!recovery;
+  }
+  $("#view").innerHTML = recovery ? renderRecovery()
+    : tab === "season" ? renderSeason() : tab === "ballot" ? renderBallot() : renderReport();
+  if (!recovery) paintStrip();
+  paintSaveState();
   paintStorageWarning();
   if (!opts.keepSheet) renderSheet();
 }
