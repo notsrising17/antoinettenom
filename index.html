@@ -297,7 +297,7 @@ textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
 .lrow{border-bottom:1px solid var(--line); text-align:left; width:100%; background:none; border-left:0; border-right:0; border-top:0; cursor:pointer; font:inherit; color:inherit}
 .lrow.is-seen{background:var(--seen); box-shadow:inset 3px 0 0 var(--blue)}
 .lrow.is-seen:hover{background:var(--seen-hover)}
-.tick{color:var(--accent); font-weight:600; margin-right:9px; font-size:15px}
+.tick{color:var(--accent); font-weight:600; margin-left:2px; font-size:15px}
 .lrow:last-child{border-bottom:0}
 .lrow{transition:background .18s var(--ease)}
 .lrow:hover{background:var(--ice)}
@@ -559,6 +559,7 @@ details.passed > summary:hover{color:var(--text)}
   <div class="wrap mast-in">
     <a class="wordmark" href="#view">The Nominator&rsquo;s Ledger<small id="mastSeason"></small></a>
     <nav class="tabs" role="tablist" aria-label="Sections">
+      <button class="tab" role="tab" data-act="tab" data-tab="schedule" id="tab-schedule">Schedule</button>
       <button class="tab" role="tab" data-act="tab" data-tab="season" id="tab-season">Season</button>
       <button class="tab" role="tab" data-act="tab" data-tab="ballot" id="tab-ballot">Ballot</button>
     </nav>
@@ -593,12 +594,6 @@ const STATUS = {
   pass:     {label:"Pass",     short:"\u2715", cls:"pass"},
 };
 const STATUS_ORDER = ["consider", "", "pass"];
-/* How settled a production's eligibility is. Blank means nobody has looked. */
-const RULINGS = {
-  tentative: {label:"Tentative", chip:"chip-warn"},
-  confirmed: {label:"Confirmed", chip:"chip-good"},
-  disputed:  {label:"Disputed",  chip:"chip-crit"},
-};
 const DATA_VERSION = 2;   // read by defaultMeta() at load, so it must be declared before it
 const STATUS_GROUP = {consider:"Considering", "":"Undecided", pass:"Passed"};
 
@@ -668,7 +663,7 @@ const GROUPS = [...new Set(CATEGORIES.map(c => c.group))];
 let shows = [];                 // array of show records
 let meta  = defaultMeta();
 let ballot = {picks:{}};        // picks[catId][candidateKey] = "nom"|"hold"|"pass"
-let tab = "season";
+let tab = "schedule";
 let pendingFocus = false;
 let openShowId = null;
 let openCats = new Set();
@@ -678,7 +673,7 @@ let query = "";                          // free-text search across the whole le
 /* Every string on a production that someone might search by, including the
    people: "Gilmour" should find every production she designed. */
 function haystack(s){
-  return [s.title, s.theatre, s.author, s.eligibilityNote, s.verdict, s.memory,
+  return [s.title, s.theatre, s.author, s.verdict, s.memory,
     ...CRAFTS.map(c => s.crafts[c.key].credit + " " + s.crafts[c.key].note),
     ...s.performances.map(p => p.name + " " + p.role + " " + p.note),
   ].join(" ").toLowerCase();
@@ -698,9 +693,7 @@ function blankCrafts(){
 function newShow(patch){
   const s = {
     id:uid(), title:"", type:"new-play", theatre:"", opened:"", seen:"", booked:"", bookedTime:"",
-    author:"", eligibilityNote:"", rosterId:"",
-    ruling:"", rulingSource:"", rulingDate:"",
-    eligible:true, recused:false, recusalNote:"", revisit:false,
+    author:"", rosterId:"",
     overall:0, verdict:"", memory:"", status:"",
     bookEligible:true, scoreEligible:true,
     crafts:blankCrafts(), performances:[], createdAt:Date.now(),
@@ -713,11 +706,9 @@ function normalizeShow(s){
     const v = s.crafts[c.key] || {};
     s.crafts[c.key] = {credit:v.credit||"", score:+v.score||0, note:v.note||"", status:STATUS[v.status] ? v.status : ""};
   }
-  s.author = s.author || ""; s.eligibilityNote = s.eligibilityNote || "";
+  s.author = s.author || "";
   s.rosterId = s.rosterId || "";
   s.booked = s.booked || ""; s.bookedTime = s.bookedTime || "";
-  s.ruling = RULINGS[s.ruling] ? s.ruling : "";
-  s.rulingSource = s.rulingSource || ""; s.rulingDate = s.rulingDate || "";
   s.performances = (s.performances||[]).map(p => ({
     id:p.id||uid(), name:p.name||"", role:p.role||"",
     billing:p.billing||"unset", division:p.division||"unset",
@@ -1081,7 +1072,7 @@ function untouched(){
   if (!meta.sample) return false;
   if (Object.values(ballot.picks || {}).some(cat => Object.keys(cat || {}).length)) return false;
   return !shows.some(s =>
-    s.seen || s.overall || s.verdict || s.memory || s.status || s.revisit || s.recused ||
+    s.seen || s.overall || s.verdict || s.memory || s.status ||
     s.performances.some(p => p.score || p.note || p.status) ||
     CRAFTS.some(c => s.crafts[c.key].score || s.crafts[c.key].note || s.crafts[c.key].status));
 }
@@ -1093,7 +1084,7 @@ let rosterUpdate = null;   // a pending, reviewable set of roster changes
    anything you wrote: only facts of record move, and only where you accept them. */
 const ROSTER_FIELDS = [
   ["author", "Written by"], ["theatre", "Theatre"], ["opened", "Opening night"],
-  ["type", "Category"], ["eligibilityNote", "Eligibility note"],
+  ["type", "Category"],
 ];
 function rosterMatch(show, entry){
   return (show.rosterId && show.rosterId === entry.rosterId) ||
@@ -1154,7 +1145,7 @@ function applyRosterUpdate(){
     if (touched){ changedN++; if (db) flushSave("show", mine.id); }
   }
   meta.rosterVersion = ROSTER_VERSION;
-  meta.eligibleTotal = Math.max(+meta.eligibleTotal || 0, shows.filter(s => s.eligible).length);
+  meta.eligibleTotal = Math.max(+meta.eligibleTotal || 0, shows.length);
   queueSave("meta");
   if (!db) writeLocal();
   rosterUpdate = null;
@@ -1272,7 +1263,7 @@ async function replaceAll(data){
    Candidates: who is eligible where
    ============================================================ */
 function candidatesFor(cat){
-  const live = shows.filter(s => s.eligible && !s.recused && s.seen);
+  const live = shows.filter(s => s.seen);
   if (cat.kind === "production"){
     return live
       .filter(s => TYPES[s.type] && TYPES[s.type].production === cat.production)
@@ -1537,24 +1528,22 @@ function stale(s){
 }
 /* Before the season is half seen, thin and empty categories are simply early. */
 function seasonEarly(){
-  const target = Math.max(+meta.eligibleTotal || 0, shows.filter(s => s.eligible).length);
+  const target = Math.max(+meta.eligibleTotal || 0, shows.length);
   return shows.filter(s => s.seen).length < target * 0.5;
 }
 function coverage(){
-  const live = shows.filter(s => s.eligible);
-  const seen = live.filter(s => s.seen);
+  const seen = shows.filter(s => s.seen);
   const logged = shows.length;
-  const unlogged = Math.max(0, (+meta.eligibleTotal || 0) - live.length);
+  const unlogged = Math.max(0, (+meta.eligibleTotal || 0) - logged);
   const catsSet = CATEGORIES.filter(c => catHealth(c).state === "set").length;
   const thin = CATEGORIES.filter(c => catHealth(c).thin).length;
   return {
-    logged, seen:seen.length, notSeen:live.length - seen.length, unlogged,
+    logged, seen:seen.length, notSeen:logged - seen.length, unlogged,
     unmarked:seen.filter(s => !assessed(s)).length,
     considering:CATEGORIES.reduce((n, c) => n + catHealth(c).considering, 0),
-    recused:shows.filter(s => s.recused).length,
     toPlace:shows.reduce((n, s) => n + s.performances.filter(p =>
       p.name.trim() && (p.billing === "unset" || p.division === "unset")).length, 0),
-    revisit:shows.filter(s => s.revisit || stale(s)).length,
+    revisit:shows.filter(stale).length,
     catsSet, thin,
   };
 }
@@ -1604,15 +1593,13 @@ function seedInto(target){
 
   target.push(
     S("Paranormal Activity", "new-play", "August Wilson Theatre", "2026-09-15", "Levi Holloway",
-      {direction:c("Felix Barrett")}, [],
-      {eligibilityNote:"Transfer of the Olivier-nominated London production. Casting was still to be announced when this roster was compiled."}),
+      {direction:c("Felix Barrett")}, []),
 
     S("School Girls; Or, The African Mean Girls Play", "new-play", "Samuel J. Friedman Theatre", "2026-09-28", "Jocelyn Bioh",
       {direction:c("Whitney White")},
       [["Patina Miller", "", "unset", "actress"],
        ["Jasmine Amy Rogers", "", "unset", "actress"],
-       ["Denée Benton", "", "unset", "actress"]],
-      {eligibilityNote:"Manhattan Theatre Club. First Broadway production of a 2017 Off-Broadway play, so it goes to Best Play, not Best Revival."}),
+       ["Denée Benton", "", "unset", "actress"]]),
 
     S("Other Desert Cities", "revival-play", "Hudson Theatre", "2026-10-18", "Jon Robin Baitz",
       {direction:c("John Benjamin Hickey")},
@@ -1620,13 +1607,11 @@ function seedInto(target){
        ["Ed Harris", "", "unset", "actor"],
        ["Allison Janney", "", "unset", "actress"],
        ["Lily Rabe", "", "unset", "actress"],
-       ["Joe Keery", "", "unset", "actor"]],
-      {eligibilityNote:"Five above-the-title names in a five-hander. Leading and featured will be argued over — check the billing when the Playbill lands."}),
+       ["Joe Keery", "", "unset", "actor"]]),
 
     S("860", "new-play", "Imperial Theatre", "2026-10-21", "Billy Crystal",
       {direction:c("Scott Ellis")},
-      [["Billy Crystal", "", "leading", "actor"]],
-      {eligibilityNote:"Solo show. The Administration Committee has repeatedly moved solo work out of Best Play and into a Special Award — confirm the ruling before treating it as a Best Play contender."}),
+      [["Billy Crystal", "", "leading", "actor"]]),
 
     S("The Imaginary Invalid", "revival-play", "Todd Haimes Theatre", "2026-10-22", "Molière, adapted by Bill Irwin",
       {direction:c("Brandon J. Dirden"), scenic:c("Beowulf Boritt"), costume:c("Karen Perry"),
@@ -1638,16 +1623,14 @@ function seedInto(target){
        ["Crystal A. Dickinson", "Béline", "featured", "actress"],
        ["Hiram Delgado", "Bonnefoy / Thomas / Fleurant", "featured"],
        ["Daniel Croix Henderson", "Cléante", "featured"],
-       ["Ava Lalezarzadeh", "Angélique", "featured"]],
-      {eligibilityNote:"Roundabout. A new adaptation of a classic still counts as a revival; the adaptation itself is not separately eligible."}),
+       ["Ava Lalezarzadeh", "Angélique", "featured"]]),
 
     S("A Few Good Men", "revival-play", "Vivian Beaumont Theater", "2026-10-29", "Aaron Sorkin",
       {direction:c("Michael Arden")},
       [["Bradley Whitford", "", "unset", "actor"],
        ["Tom Blyth", "", "unset", "actor"],
        ["Krysta Rodriguez", "Lt. Cmdr. JoAnne Galloway", "unset", "actress"],
-       ["Stephanie Berry", "Judge Randolph", "featured", "actress"]],
-      {eligibilityNote:"Lincoln Center Theater. First Broadway revival of the 1989 play."}),
+       ["Stephanie Berry", "Judge Randolph", "featured", "actress"]]),
 
     S("Wanted", "new-musical", "James Earl Jones Theatre", "2026-11-08", "Angelica Chéri and Ross Baum",
       {direction:c("Stevie Walker-Webb"), book:c("Angelica Chéri"),
@@ -1658,8 +1641,7 @@ function seedInto(target){
        ["Luke James", "Elijah", "featured", "actor"],
        ["Bradley Jaden", "Jesse", "featured", "actor"],
        ["Aurelia Williams", "Sissy", "featured", "actress"],
-       ["Awa Sal Secka", "Flo", "featured", "actress"]],
-      {eligibilityNote:"Two co-leads billed together — if both are placed leading they split the same category."}),
+       ["Awa Sal Secka", "Flo", "featured", "actress"]]),
 
     S("The Fantasticks", "new-musical", "Hayes Theater", "2026-11-16", "Tom Jones and Harvey Schmidt",
       {direction:c("Christopher Gattelli"), choreography:c("Christopher Gattelli"),
@@ -1673,8 +1655,7 @@ function seedInto(target){
        ["Kevin Del Aguila", "Mortimer", "featured", "actor"],
        ["David Patrick Kelly", "Henry", "featured", "actor"],
        ["Ahmad Simmons", "The Mute", "featured"]],
-      {bookEligible:false, scoreEligible:false,
-       eligibilityNote:"Second Stage. The hardest classification of the season: the 1960 show ran Off-Broadway for forty-two years but never on Broadway, so it is not a revival under the rules — yet its book and score are not original to this production. Book and score are switched off here pending a ruling. New production, staging and design are unaffected."}),
+      {bookEligible:false, scoreEligible:false}),
 
     S("Much Ado About Nothing", "revival-play", "Winter Garden Theatre", "2026-11-19", "William Shakespeare",
       {direction:c("Jamie Lloyd"), scenic:c("Soutra Gilmour"), costume:c("Soutra Gilmour"),
@@ -1688,83 +1669,69 @@ function seedInto(target){
        ["Tim Steed", "Don John", "featured", "actor"],
        ["Mason Alexander Park", "Margaret", "featured", "unset", true],
        ["Mika Onyx Johnson", "Borachio", "featured"],
-       ["Phillip Olagoke", "Friar Francis", "featured"]],
-      {eligibilityNote:"Soutra Gilmour is credited on both set and costumes, so this production competes in two design categories on one designer. Mason Alexander Park is left unplaced deliberately: the actor/actress split is the performer's own call, not the ledger's."}),
+       ["Phillip Olagoke", "Friar Francis", "featured"]]),
 
     S("Inter Alia", "new-play", "Music Box Theatre", "2026-12-01", "Suzie Miller",
       {direction:c("Justin Martin")},
-      [["Rosamund Pike", "Jessica Parks", "leading", "actress"]],
-      {eligibilityNote:"National Theatre production, transferring with its full West End cast."}),
+      [["Rosamund Pike", "Jessica Parks", "leading", "actress"]]),
 
     S("Galileo", "new-musical", "Sam S. Shubert Theatre", "2026-12-06", "Danny Strong, Zoe Sarnak and Michael Weiner",
       {direction:c("Michael Mayer"), book:c("Danny Strong"),
        score:c("Zoe Sarnak and Michael Weiner"), choreography:c("David Neumann")},
       [["Raúl Esparza", "Galileo Galilei", "leading", "actor"],
        ["Joy Woods", "Galileo's daughter", "unset", "actress"],
-       ["Jeremy Kushnier", "", "unset", "actor"]],
-      {eligibilityNote:"World premiere was Berkeley Rep, 2024. Out-of-town history does not affect Broadway eligibility."}),
+       ["Jeremy Kushnier", "", "unset", "actor"]]),
 
     S("Dolly: A True Original Musical", "new-musical", "St. James Theatre", "2027-01-19", "Dolly Parton and Maria S. Schlatter",
       {direction:c("Bartlett Sher"), book:c("Dolly Parton and Maria S. Schlatter"),
        score:c("Dolly Parton"), choreography:c("Mandy Moore"), scenic:c("Derek McLane"),
        costume:c("Jennifer Moeller"), lighting:c("Donald Holder"), sound:c("Peter Hylenski")},
       [],
-      {scoreEligible:false,
-       eligibilityNote:"Released catalogue songs plus new material written for the show. Score eligibility turns on how much is genuinely new — switched off here pending a ruling. The book is original and stays eligible. Casting was still to be announced."}),
+      {scoreEligible:false}),
 
     S("Mix and Master", "new-play", "Todd Haimes Theatre", "2027-01-27", "Dominique Morisseau",
       {direction:c("Kamilah Forbes")},
       [["Ruben Santiago-Hudson", "", "unset", "actor"],
-       ["Kara Young", "", "unset", "actress"]],
-      {eligibilityNote:"Roundabout. Live DJ sets throughout — worth listening for whether the sound design is doing work the ballot should notice."}),
+       ["Kara Young", "", "unset", "actress"]]),
 
     S("Three Days of Rain", "revival-play", "", "", "Richard Greenberg",
       {direction:c("Anna D. Shapiro")},
       [["David Corenswet", "", "unset", "actor"],
        ["François Arnaud", "", "unset", "actor"],
-       ["Yvonne Strahovski", "", "unset", "actress"]],
-      {eligibilityNote:"February 2027. Theatre and exact dates were still to be announced. Three actors, six roles across two acts — billing will need care."}),
+       ["Yvonne Strahovski", "", "unset", "actress"]]),
 
     S("Evita", "revival-musical", "Winter Garden Theatre", "2027-03-25", "Andrew Lloyd Webber and Tim Rice",
       {direction:c("Jamie Lloyd"), choreography:c("Fabian Aloise")},
-      [["Rachel Zegler", "Eva Perón", "leading", "actress"]],
-      {eligibilityNote:"London Palladium production transferring. Revival, so book and score are not eligible — new orchestrations, if credited, are."}),
+      [["Rachel Zegler", "Eva Perón", "leading", "actress"]]),
 
     S("Gloria", "new-play", "Hayes Theater", "2027-04-05", "Branden Jacobs-Jenkins",
-      {direction:c("Evan Cabnet")}, [],
-      {eligibilityNote:"Second Stage. Broadway premiere of the 2015 Pulitzer finalist, so Best Play rather than Best Revival. Casting was still to be announced."}),
+      {direction:c("Evan Cabnet")}, []),
 
     S("The Sound of Music", "revival-musical", "Vivian Beaumont Theater", "2027-04-15", "Rodgers and Hammerstein",
       {direction:c("Lear deBessonet"), choreography:c("Christopher Gattelli")},
-      [["Jasmine Amy Rogers", "Maria Rainer", "leading", "actress"]],
-      {eligibilityNote:"Lincoln Center Theater. First Broadway revival in thirty years."}),
+      [["Jasmine Amy Rogers", "Maria Rainer", "leading", "actress"]]),
 
     S("Paddington: The Musical", "new-musical", "Al Hirschfeld Theatre", "2027-04-18", "Tom Fletcher and Jessica Swale",
       {direction:c("Luke Sheppard"), book:c("Jessica Swale"), score:c("Tom Fletcher"),
        orchestrations:c("Matt Brind"), choreography:c("Ellen Kane"), scenic:c("Tom Pye"),
        costume:c("Gabriella Slade"), lighting:c("Neil Austin"), sound:c("Gareth Owen")},
-      [],
-      {eligibilityNote:"West End creative team reuniting. Puppet design by Tahra Zafar has no category of its own — it reads on the ballot through costume or scenic, if at all."}),
+      []),
 
     S("The Full Monty", "revival-musical", "Todd Haimes Theatre", "2027-04-25", "Terrence McNally and David Yazbek",
       {direction:c("Leigh Silverman"), choreography:c("Connor Gallagher")},
-      [],
-      {eligibilityNote:"Roundabout. Opens 25 April 2027 — right against the eligibility cut-off. Confirm which season it lands in before scoring it."}),
+      []),
 
     S("Cat on a Hot Tin Roof", "revival-play", "", "", "Tennessee Williams",
-      {direction:c("Sam Gold")}, [],
-      {eligibilityNote:"Spring 2027. Theatre, dates and casting were all still to be announced."}),
+      {direction:c("Sam Gold")}, []),
 
     S("Montauk", "new-play", "Samuel J. Friedman Theatre", "", "David Hare",
       {direction:c("Daniel Sullivan")},
-      [["Laura Linney", "Roxy Margaux", "leading", "actress"]],
-      {eligibilityNote:"Manhattan Theatre Club, spring 2027. World premiere; exact dates were still to be announced."}),
+      [["Laura Linney", "Roxy Margaux", "leading", "actress"]]),
 
     S("Warriors", "new-musical", "Lunt-Fontanne Theatre", "", "Lin-Manuel Miranda and Eisa Davis",
       {direction:c("Jenny Koons"), book:c("Lin-Manuel Miranda and Eisa Davis"),
        score:c("Lin-Manuel Miranda and Eisa Davis"), choreography:c("Andy Blankenbuehler")},
-      [],
-      {eligibilityNote:"April 2027; exact dates were still to be announced. Andy Blankenbuehler is credited as co-director as well as choreographer — that is two separate categories on one person."})
+      [])
   );
 }
 
@@ -2053,7 +2020,7 @@ function returnPicks(held){
 function paintStrip(){
   const mast = $("#mastSeason");
   // The Season page sets the name in its own hero; repeating it here is noise.
-  if (mast){ mast.textContent = meta.label; mast.hidden = (tab === "season" && !recovery && !intake && !rosterUpdate); }
+  if (mast){ mast.textContent = meta.label; mast.hidden = (tab === "schedule" && !recovery && !intake && !rosterUpdate); }
   const nameEl = $("#seasonName");
   if (nameEl && nameEl.value !== meta.label && document.activeElement !== nameEl) nameEl.value = meta.label;
 }
@@ -2077,8 +2044,7 @@ function visibleShows(){
   if (filter === "unseen")     list = list.filter(s => !s.seen);
   if (filter === "unmarked")    list = list.filter(s => s.seen && !assessed(s));
   if (filter === "considering") list = list.filter(s => marksOn(s, "consider") > 0);
-  if (filter === "revisit")    list = list.filter(s => s.revisit || stale(s));
-  if (filter === "recused")    list = list.filter(s => s.recused);
+  if (filter === "revisit")    list = list.filter(stale);
   const byTitle = (a, b) => titleOf(a).localeCompare(titleOf(b));
   if (sortBy === "score")  list.sort((a, b) => (b.overall - a.overall) || byTitle(a, b));
   else if (sortBy === "title") list.sort(byTitle);
@@ -2239,7 +2205,7 @@ function renderQuick(){
 
   if (quickPicking){
     const q = quickQuery.toLowerCase();
-    const pool = shows.filter(s => s.eligible && (!q || haystack(s).includes(q)))
+    const pool = shows.filter(s => !q || haystack(s).includes(q))
       .sort((a, b) => (a.seen ? 1 : 0) - (b.seen ? 1 : 0) || titleOf(a).localeCompare(titleOf(b)));
     wrap.hidden = false;
     document.body.style.overflow = "hidden";
@@ -2398,14 +2364,10 @@ function renderRecovery(){
   "</div>";
 }
 
-function renderSeason(){
-  const c = coverage();
-  const list = visibleShows();
-  const awardsFor = awardsByShow();
-  const revisits = shows.filter(s => s.revisit || stale(s));
-  const upcoming = shows.filter(s => s.eligible && !s.seen && s.opened)
+function renderSchedule(){
+  const revisits = shows.filter(stale);
+  const upcoming = shows.filter(s => !s.seen && s.opened)
     .sort((a, b) => a.opened.localeCompare(b.opened));
-  const next = upcoming[0];
 
   const booked = diary();
   const late = overdue();
@@ -2424,7 +2386,7 @@ function renderSeason(){
               (booked[0].theatre ? " at " + esc(booked[0].theatre) : "") + "." +
               "</p>"
           : '<h1 class="hero-title">Nothing booked</h1>' +
-            '<p class="hero-msg">Open a production below and set the night you are going &mdash; it will appear here and can go straight to your calendar.</p>') +
+            '<p class="hero-msg">Open a production from the Season tab and set the night you are going &mdash; it will appear here and can go straight to your calendar.</p>') +
         (late.length
           ? '<p class="hero-flag"><button class="linkish" data-act="set-filter" data-v="overdue">' +
             "Did you see " + esc(titleOf(late[0])) + (late.length > 1 ? " and " + (late.length - 1) + " more" : "") +
@@ -2434,19 +2396,18 @@ function renderSeason(){
             towriteUp.length + " seen, not yet written up<span class=\"arrow\" aria-hidden=\"true\">&rarr;</span></button></p>" : "") +
         '<p class="tally-line" style="margin-top:22px">' + seasonLine() + "</p>" +
       "</div>" +
-      // The headline already names the first booking; the aside carries what follows it.
+      // The headline already names the first booking; the aside is only for
+      // further bookings, since everything else is already the list below.
       (() => {
         const rest = booked.slice(1);
-        const showing = rest.length ? rest : (booked.length ? [] : upcoming);
-        const heading = rest.length ? "Then" : "Opening next";
-        if (!showing.length) return "";
-        return '<aside class="hero-aside rise rise-2" aria-label="' + heading + '">' +
-        "<h2>" + heading + "</h2>" +
-        ('<div class="upnext">' + showing.slice(0, 4).map(s =>
+        if (!rest.length) return "";
+        return '<aside class="hero-aside rise rise-2" aria-label="Then">' +
+        "<h2>Then</h2>" +
+        ('<div class="upnext">' + rest.slice(0, 4).map(s =>
               '<button data-act="open-show" data-id="' + s.id + '">' +
-                '<span class="u-d">' + esc(s.booked ? bookedShort(s) : fmtDate(s.opened)) + "</span>" +
+                '<span class="u-d">' + esc(bookedShort(s)) + "</span>" +
                 '<span><span class="u-t">' + esc(titleOf(s)) + "</span>" +
-                '<span class="u-s">' + [esc(s.theatre), s.booked ? "" : TYPES[s.type].label].filter(Boolean).join(" &middot; ") + "</span></span>" +
+                '<span class="u-s">' + esc(s.theatre) + "</span></span>" +
               "</button>").join("") + "</div>") +
         "</aside>";
       })() +
@@ -2464,8 +2425,37 @@ function renderSeason(){
       '<button class="btn btn-primary" data-act="export-json">Download a backup</button>' +
       '<button class="btn btn-ghost" data-act="snooze-nudge">Not now</button></div>';
   }
+  if (revisits.length){
+    html += '<div class="banner" style="border-color:var(--line-2); border-left-color:var(--accent); background:var(--accent-soft)">' +
+      '<p><strong>Worth seeing again before the meeting.</strong> ' +
+      revisits.map(s => italic(titleOf(s)) + ' <span class="mono" style="font-size:12px; color:var(--text-3)">' +
+        (s.seen ? seenAgo(s.seen) : "not seen") + "</span>").join(" &middot; ") +
+      "</p></div>";
+  }
 
-  html += '<div class="toolbar">' +
+  html += '<div class="sec"><div class="sec-head"><h2>What’s opening</h2>' +
+    '<span class="eyebrow">' + upcoming.length + " not yet seen</span></div>";
+  if (!upcoming.length){
+    html += '<div class="empty"><h3>Nothing on the calendar</h3>' +
+      '<p>Open a production from the Season tab and set a date &mdash; it will appear here in order.</p></div>';
+  } else {
+    html += '<div class="upnext">' + upcoming.map(s =>
+      '<button data-act="open-show" data-id="' + s.id + '">' +
+        '<span class="u-d">' + esc(s.booked ? bookedShort(s) : fmtDate(s.opened)) + "</span>" +
+        '<span><span class="u-t">' + esc(titleOf(s)) + "</span>" +
+        '<span class="u-s">' + [esc(s.theatre), s.booked ? "Booked" : TYPES[s.type].label].filter(Boolean).join(" &middot; ") + "</span></span>" +
+      "</button>").join("") + "</div>";
+  }
+  html += "</div>";
+  return html;
+}
+
+function renderSeason(){
+  const c = coverage();
+  const list = visibleShows();
+  const awardsFor = awardsByShow();
+
+  let html = '<div class="toolbar">' +
     '<div class="field" style="flex:1 1 100%"><label>Show me</label><div class="seg" role="group" aria-label="Filter the season">' +
       [["all", "All"], ["booked", "Booked"], ["unseen", "Not seen"], ["seen", "Seen"],
        ["unmarked", "Not written up"], ["considering", "In the running"]]
@@ -2488,15 +2478,8 @@ function renderSeason(){
   }
 
   if (c.unlogged > 0){
-    html += '<p class="hint" style="margin:-6px 0 16px">' + c.unlogged + " eligible production" + (c.unlogged === 1 ? "" : "s") +
+    html += '<p class="hint" style="margin:-6px 0 16px">' + c.unlogged + " production" + (c.unlogged === 1 ? "" : "s") +
       " opened this season that you have not logged yet. Log them as they are announced so nothing is missed in April.</p>";
-  }
-  if (revisits.length){
-    html += '<div class="banner" style="border-color:var(--line-2); border-left-color:var(--accent); background:var(--accent-soft)">' +
-      '<p><strong>Worth seeing again before the meeting.</strong> ' +
-      revisits.map(s => italic(titleOf(s)) + ' <span class="mono" style="font-size:12px; color:var(--text-3)">' +
-        (s.seen ? seenAgo(s.seen) : "not seen") + "</span>").join(" &middot; ") +
-      "</p></div>";
   }
 
   html += '<div class="ledger"><div class="lhead">' +
@@ -2507,18 +2490,14 @@ function renderSeason(){
   } else {
     for (const s of list){
       const awards = awardsFor.get(s.id) || [];
-      // Only things you can act on from here; everything else lives on Needs you.
       const flags = [];
-      if (s.recused) flags.push('<span class="chip chip-accent">Recused</span>');
-      if (!s.eligible) flags.push('<span class="chip chip-quiet">Not eligible</span>');
-      if (s.revisit || stale(s)) flags.push('<span class="chip chip-warn">Revisit</span>');
+      if (stale(s)) flags.push('<span class="chip chip-warn">Revisit</span>');
       if (s.booked && !s.seen) flags.push('<span class="chip chip-consider">' + esc(bookedShort(s)) + "</span>");
 
       html += '<button class="lrow' + (s.seen ? " is-seen" : "") + '" data-act="open-show" data-id="' + s.id + '">' +
         '<div class="c-title"><div class="title">' +
-          (s.seen ? '<span class="tick" aria-hidden="true">\u2713</span>' : "") +
           "<em>" + esc(titleOf(s)) + "</em>" +
-          (s.seen ? '<span class="vh"> (seen)</span>' : "") + "</div>" +
+          (s.seen ? ' <span class="tick" aria-hidden="true">\u2713</span><span class="vh"> (seen)</span>' : "") + "</div>" +
           '<div class="sub">' + [TYPES[s.type].label, esc(s.author), esc(s.theatre),
             s.seen ? "seen " + fmtDate(s.seen) : (s.opened ? "opens " + fmtDate(s.opened) : "date TBA")]
             .filter(Boolean).join(" &middot; ") + "</div></div>" +
@@ -2535,7 +2514,7 @@ function renderSeason(){
   html += '<div class="pagefoot">' +
     '<button class="btn" data-act="intake-open">Paste a press release<span class="arrow" aria-hidden="true">&rarr;</span></button>' +
     '<button class="btn" data-act="new-show">Add a production by hand</button>' +
-    '<label class="footfield">Eligible this season' +
+    '<label class="footfield">Productions this season' +
       '<input class="inp" type="number" min="0" max="200" value="' + (+meta.eligibleTotal || 0) +
       '" data-field="meta:eligibleTotal" data-type="number" data-rerender="1"></label>' +
   "</div>";
@@ -2611,14 +2590,16 @@ function renderSheet(){
     "</div>" +
 
     '<div class="block"><h3>' + (s.seen ? "When you saw it" : "When you are going") + "</h3>" +
-      '<p class="hint">Book the night and it appears in your diary; log the date you went and the ledger starts asking for a verdict.</p>' +
+      '<p class="hint">' + (s.seen
+        ? "Correct the date below if you saw it on a different night than planned."
+        : "Set a date and it appears in your diary and calendar; say you saw it and the ledger starts asking for a verdict.") + "</p>" +
       '<div class="grid3">' +
-        '<div class="field"><label for="bk-' + s.id + '">Booked for</label>' +
-          '<input class="inp" id="bk-' + s.id + '" type="date" value="' + esc(s.booked) + '" data-field="' + f("booked") + '" data-rerender="1"></div>' +
-        '<div class="field"><label for="bt-' + s.id + '">Curtain</label>' +
-          '<input class="inp" id="bt-' + s.id + '" type="time" value="' + esc(s.bookedTime) + '" data-field="' + f("bookedTime") + '" data-rerender="1"></div>' +
-        '<div class="field"><label for="sn-' + s.id + '">Date I saw it</label>' +
-          '<input class="inp" id="sn-' + s.id + '" type="date" value="' + esc(s.seen) + '" data-field="' + f("seen") + '" data-rerender="1"></div>' +
+        '<div class="field"><label for="dt-' + s.id + '">' + (s.seen ? "Date I saw it" : "Booked for") + '</label>' +
+          '<input class="inp" id="dt-' + s.id + '" type="date" value="' + esc(s.seen || s.booked) + '" data-field="' +
+            f(s.seen ? "seen" : "booked") + '" data-rerender="1"></div>' +
+        (s.seen ? "" :
+          '<div class="field"><label for="bt-' + s.id + '">Curtain</label>' +
+            '<input class="inp" id="bt-' + s.id + '" type="time" value="' + esc(s.bookedTime) + '" data-field="' + f("bookedTime") + '" data-rerender="1"></div>') +
       "</div>" +
       (s.booked && !s.seen
         ? '<div class="cal-row">' +
@@ -2629,8 +2610,8 @@ function renderSheet(){
         : "") +
     "</div>" +
 
-    '<div class="block"><h3>The night itself</h3>' +
-      '<div class="field" style="margin-bottom:14px"><label>The production itself</label>' +
+    '<div class="block"><h3>Overall Production</h3>' +
+      '<div class="field" style="margin-bottom:14px">' +
         '<div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap">' +
           verdictHTML(s.id + ":show", s.status, titleOf(s) + " for its production category", false) +
           faderHTML(f("overall"), s.overall, "Overall score") +
@@ -2647,8 +2628,8 @@ function renderSheet(){
       (musical ? " Orchestrations are open to revivals; book and original score are not, unless newly written for this production." : "") + "</p>" +
       crafts +
       (musical ? '<div class="grid2" style="margin-top:16px; padding-top:14px; border-top:1px solid var(--line)">' +
-        check("bookEligible", "Book is eligible", "A revival's existing book is not.") +
-        check("scoreEligible", "Score is eligible as original", "A score assembled from released songs is not original.") +
+        check("bookEligible", "Book is eligible", "") +
+        check("scoreEligible", "Score is eligible as original", "") +
       "</div>" : "") +
     "</div>" +
 
@@ -2662,26 +2643,6 @@ function renderSheet(){
           '<input type="checkbox" data-field="' + f("perf:" + p.id + ":disputed") + '" data-type="bool"' + (p.disputed ? " checked" : "") + ">" +
           "<span>Billing disputed: " + esc(p.name || "unnamed") + "</span></label>").join("") +
       "</div>" : "") +
-    "</div>" +
-
-    '<div class="block"><h3>Eligibility and conflicts</h3>' +
-      '<div class="grid2" style="margin-bottom:12px">' +
-        check("eligible", "Eligible this season", "Opened inside the eligibility window.") +
-        check("recused", "I am recused from this production", "Removes it from every category on your ballot.") +
-        check("revisit", "Mark for a second viewing", "") +
-      "</div>" +
-      '<div class="grid3" style="margin-bottom:12px">' +
-        '<div class="field"><label for="rg-' + s.id + '">Ruling</label><select class="inp" id="rg-' + s.id + '" data-field="' + f("ruling") + '" data-rerender="1">' +
-          '<option value=""' + (s.ruling ? "" : " selected") + ">Not looked at</option>" +
-          Object.entries(RULINGS).map(([v, r]) => '<option value="' + v + '"' + (s.ruling === v ? " selected" : "") + ">" + r.label + "</option>").join("") +
-        "</select></div>" +
-        '<div class="field"><label for="rd-' + s.id + '">Ruled on</label><input class="inp mono" id="rd-' + s.id + '" type="date" value="' + esc(s.rulingDate) + '" data-field="' + f("rulingDate") + '"></div>' +
-        '<div class="field"><label for="rs-' + s.id + '">Source</label><input class="inp" id="rs-' + s.id + '" value="' + esc(s.rulingSource) + '" data-field="' + f("rulingSource") + '" placeholder="Where the ruling came from"></div>' +
-      "</div>" +
-      '<div class="field" style="margin-bottom:12px"><label for="en-' + s.id + '">Eligibility note</label>' +
-        '<textarea class="inp" id="en-' + s.id + '" data-field="' + f("eligibilityNote") + '" placeholder="Rule questions on this production — revival or premiere, original score or catalogue, cut-off dates">' + esc(s.eligibilityNote) + "</textarea></div>" +
-      '<div class="field"><label for="rn-' + s.id + '">Nature of the conflict</label>' +
-        '<input class="inp" id="rn-' + s.id + '" value="' + esc(s.recusalNote) + '" data-field="' + f("recusalNote") + '" placeholder="Recorded for the committee"></div>' +
     "</div>" +
 
     '<div style="display:flex; justify-content:flex-end; margin-top:22px">' +
@@ -2701,14 +2662,12 @@ function renderSheet(){
    Ballot view
    ============================================================ */
 function renderBallot(){
-  const recused = shows.filter(s => s.recused);
   const early = seasonEarly();
   let html = '<div class="banner" style="border-color:var(--line-2); border-left-color:var(--brass); background:var(--surface)">' +
     "<p>Every production you have seen appears in the categories it is eligible for. Marking an element " +
     "<strong>consider</strong> is what builds that category\u2019s list; work the list down, then " +
     "<strong>nominate</strong> to fill the slate. <strong>Pass</strong> is only a note to yourself that you gave " +
     "something thought \u2014 it is recorded nowhere else in the ledger. Scores stay optional." +
-    (recused.length ? " You are recused from " + recused.map(s => italic(titleOf(s))).join(", ") + ", so they appear nowhere below." : "") +
     "</p></div>";
   if (!shows.some(s => s.seen)){
     html += '<div class="banner" style="border-color:var(--line-2); border-left-color:var(--accent); background:var(--accent-soft)">' +
@@ -2855,16 +2814,13 @@ function renderReport(){
     html += "</div>";
   }
 
-  const unsettled = shows.filter(s => s.eligible && !s.recused && s.seen && s.eligibilityNote && s.ruling !== "confirmed");
   const unplaced = shows.reduce((n, s) => n + s.performances.filter(p => p.name.trim() && (p.billing === "unset" || p.division === "unset")).length, 0);
   const openCats = CATEGORIES.filter(c => catHealth(c).state !== "set");
-  if (unsettled.length || unplaced || openCats.length){
+  if (unplaced || openCats.length){
     html += '<div class="rgroup"><h3>Unresolved before the meeting</h3><div class="rcat">';
     if (openCats.length) html += "<p>" + openCats.length + " categor" + (openCats.length === 1 ? "y has" : "ies have") +
       " no settled slate: " + openCats.slice(0, 8).map(c => esc(c.name)).join("; ") + (openCats.length > 8 ? "; and more." : ".") + "</p>";
     if (unplaced) html += "<p>" + unplaced + " performance" + (unplaced === 1 ? "" : "s") + " still to be placed as leading or featured.</p>";
-    if (unsettled.length) html += "<p>Eligibility not confirmed: " +
-      unsettled.map(s => italic(titleOf(s)) + (s.ruling ? " (" + RULINGS[s.ruling].label.toLowerCase() + ")" : "")).join("; ") + ".</p>";
     html += "</div></div>";
   }
 
@@ -2917,11 +2873,6 @@ function ballotText(){
     L.push("-------------------------");
     t.forEach(x => L.push("   " + String(x.n).padStart(2) + "  " + titleOf(x.show)));
     L.push("");
-  }
-  const rec = shows.filter(s => s.recused);
-  if (rec.length){
-    L.push("RECUSED");
-    rec.forEach(s => L.push("   " + titleOf(s) + (s.recusalNote ? " — " + s.recusalNote : "")));
   }
   return L.join("\n");
 }
@@ -3132,7 +3083,7 @@ document.addEventListener("click", async e => {
 
   /* ---- quick log ---- */
   if (act === "quick-open"){
-    if (!shows.some(s => s.eligible)){ toast("No productions to log yet."); return; }
+    if (!shows.length){ toast("No productions to log yet."); return; }
     quickPicking = true; quickQuery = "";
     renderQuick();
     const box = document.querySelector("#quickSearch");
@@ -3254,7 +3205,7 @@ document.addEventListener("click", async e => {
     return;
   }
   if (act === "tab"){ tab = el.dataset.tab; render(); window.scrollTo({top:0, behavior:"instant"}); return; }
-  if (act === "set-filter"){ filter = el.dataset.v; render(); return; }
+  if (act === "set-filter"){ filter = el.dataset.v; tab = "season"; render(); window.scrollTo({top:0, behavior:"instant"}); return; }
   if (act === "set-filter-sel"){ filter = el.value || "all"; render(); return; }
   if (act === "set-sort"){ sortBy = el.value; render(); return; }
 
@@ -3422,6 +3373,7 @@ function render(opts){
     : intake ? renderIntake()
     : rosterUpdate ? renderRosterUpdate()
     : compareCat ? renderCompare(CAT_BY_ID[compareCat])
+    : tab === "schedule" ? renderSchedule()
     : tab === "season" ? renderSeason()
     : renderBallot();
   if (!recovery) paintStrip();
