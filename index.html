@@ -218,8 +218,12 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 .btn-lg{font-size:16px; padding:15px 30px; letter-spacing:.12em}
 .btn:hover{border-color:var(--accent); background:var(--ice)}
-.btn-primary{background:var(--accent); border-color:var(--accent); color:#FFFFFF; font-weight:500}
-.btn-primary:hover{background:var(--accent-2); border-color:var(--accent-2); color:#FFFFFF}
+/* --accent is tuned as a light-on-dark or dark-on-light reading color, not
+   as a fill with white text on top — in dark mode it's pale enough that white
+   text on it fails contrast. --bg gives a text color that's always the
+   opposite end of the palette from --accent, in both themes. */
+.btn-primary{background:var(--accent); border-color:var(--accent); color:var(--bg); font-weight:500}
+.btn-primary:hover{background:var(--accent-2); border-color:var(--accent-2); color:var(--bg)}
 .btn-ghost{border-color:transparent; background:none; color:var(--text-2); font-weight:500}
 .btn-ghost:hover{background:var(--surface-2); color:var(--text)}
 .btn-danger{color:var(--crit); border-color:var(--line-2)}
@@ -370,7 +374,6 @@ textarea.inp{resize:vertical; min-height:58px; line-height:1.5}
   position:sticky; top:0; z-index:5; display:flex; gap:12px; align-items:center;
   background:var(--surface); border-bottom:1px solid var(--line); padding:11px 20px; flex-wrap:wrap;
 }
-.sheet-bar .eyebrow{flex:1 1 auto}
 .sheet-body{padding:22px 20px 40px}
 .grid2{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px}
 .grid3{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px}
@@ -477,19 +480,13 @@ details.passed > summary:hover{color:var(--text)}
 #storageWarning{position:fixed; bottom:12px; left:0; right:0; z-index:95; max-width:680px}
 #storageWarning[hidden]{display:none}
 #storageWarning .banner{background:var(--crit-soft); border-color:var(--crit); margin:0; box-shadow:0 4px 24px #0003}
-/* item 5 — the ten minutes after curtain */
-.quick{position:fixed; inset:0; z-index:70; background:rgba(20,14,15,.55); display:flex; align-items:flex-end; justify-content:center; overflow-y:auto}
-.quick-card{background:var(--bg); width:min(560px,100%); border:1px solid var(--line-2); border-radius:var(--r) var(--r) 0 0; padding:22px 20px 28px; box-shadow:var(--shadow)}
-.quick-card h2{font-family:var(--display); font-size:25px; margin-bottom:4px}
-.quick-card > .hint{margin-bottom:16px}
+/* Shared by the press-release intake and roster-update review dialogs. */
 .quick-field{margin-bottom:16px}
 .quick-field > label{display:block; font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-3); margin-bottom:6px}
-.quick-card .verdict button{padding:10px 14px; font-size:11px}
 .quick-cast{display:flex; flex-direction:column; gap:7px; max-height:210px; overflow-y:auto}
 .quick-cast label{display:flex; gap:9px; align-items:center; font-size:14px; padding:7px 9px; border:1px solid var(--line); border-radius:var(--r); background:var(--surface); cursor:pointer}
 .quick-cast input{width:17px; height:17px}
 .quick-actions{display:flex; gap:9px; justify-content:flex-end; flex-wrap:wrap; margin-top:20px}
-@media (min-width:620px){ .quick{align-items:center} .quick-card{border-radius:var(--r)} }
 
 /* item 9 — side by side */
 .compare{display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(232px,1fr)); margin-top:14px}
@@ -586,7 +583,6 @@ details.passed > summary:hover{color:var(--text)}
 <div class="wrap" id="storageWarning" role="alert" hidden></div>
 
 <div class="sheet-wrap" id="sheetWrap" hidden></div>
-<div class="quick" id="quickWrap" hidden></div>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <footer class="wrap foot">
@@ -1428,6 +1424,7 @@ function catHealth(cat){
    Dates / coverage
    ============================================================ */
 const MS_DAY = 86400000;
+const todayISO = () => new Date().toISOString().slice(0, 10);
 function fmtDate(iso){
   if (!iso) return "";
   const d = new Date(iso + "T12:00:00");
@@ -2161,7 +2158,7 @@ function visibleShows(){
 /* ============================================================
    Quick log, needs-you, compare, roster review
    ============================================================ */
-let quickFor = null, compareCat = null, quickPicking = false, quickQuery = "";
+let compareCat = null;
 let intake = null;   // {stage, text, draft, matchId, reading}
 
 const CRAFT_LABEL = Object.fromEntries(CRAFTS.map(c => [c.key, c.label]));
@@ -2296,59 +2293,6 @@ function applyIntake(){
   queueSave("meta");
   intake = null;
   return {created, id:show.id, title:titleOf(show), cast:keep.length};
-}
-
-function renderQuick(){
-  const wrap = $("#quickWrap");
-  if (!quickFor && !quickPicking){ wrap.hidden = true; wrap.innerHTML = ""; document.body.style.overflow = ""; return; }
-
-  if (quickPicking){
-    const q = quickQuery.toLowerCase();
-    const pool = shows.filter(s => !q || haystack(s).includes(q))
-      .sort((a, b) => (a.seen ? 1 : 0) - (b.seen ? 1 : 0) || titleOf(a).localeCompare(titleOf(b)));
-    wrap.hidden = false;
-    document.body.style.overflow = "hidden";
-    wrap.innerHTML = '<div class="quick-card" role="dialog" aria-modal="true" aria-label="Which production">' +
-      '<span class="eyebrow">Just saw it</span><h2>Which one?</h2>' +
-      '<p class="hint">Not-yet-seen productions first.</p>' +
-      '<div class="quick-field"><input class="inp" id="quickSearch" type="search" value="' + esc(quickQuery) +
-        '" data-act="quick-search" placeholder="Start typing a title" autocomplete="off"></div>' +
-      '<div class="quick-cast" style="max-height:300px">' +
-        (pool.length ? pool.slice(0, 40).map(s =>
-          '<label style="cursor:pointer"><span style="flex:1"><strong>' + esc(titleOf(s)) + "</strong>" +
-          '<br><span class="hint">' + [esc(s.theatre), s.seen ? "seen " + fmtDate(s.seen) : "not seen"].filter(Boolean).join(" &middot; ") +
-          "</span></span>" +
-          '<button class="btn btn-sm" data-act="quick-pick" data-id="' + s.id + '">Choose</button></label>').join("")
-        : '<p class="hint">Nothing matches.</p>') +
-      "</div>" +
-      '<div class="quick-actions"><button class="btn" data-act="quick-close">Cancel</button></div></div>';
-    return;
-  }
-  const s = getShow(quickFor);
-  if (!s){ quickFor = null; wrap.hidden = true; return; }
-  const today = new Date().toISOString().slice(0, 10);
-  const cast = s.performances.filter(p => p.name.trim());
-  wrap.hidden = false;
-  document.body.style.overflow = "hidden";
-  wrap.innerHTML = '<div class="quick-card" role="dialog" aria-modal="true" aria-label="Log a viewing">' +
-    '<span class="eyebrow">Just saw it</span>' +
-    "<h2>" + esc(titleOf(s)) + "</h2>" +
-    '<p class="hint">Four things while it is fresh. The credits are already loaded; the full sheet can wait.</p>' +
-    '<div class="quick-field"><label for="qd">Date I saw it</label>' +
-      '<input class="inp mono" id="qd" type="date" value="' + esc(s.seen || today) + '" data-field="show:' + s.id + ':seen"></div>' +
-    '<div class="quick-field"><label>The production</label>' +
-      verdictHTML(s.id + ":show", s.status, titleOf(s), false) + "</div>" +
-    '<div class="quick-field"><label for="qm">What will still be in your head in April</label>' +
-      '<textarea class="inp" id="qm" data-field="show:' + s.id + ':memory" placeholder="The image, the sound, the two minutes you would describe">' + esc(s.memory) + "</textarea></div>" +
-    (cast.length ? '<div class="quick-field"><label>Anyone who stood out</label><div class="quick-cast">' +
-      cast.map(p => '<label><input type="checkbox" data-act="quick-cast" data-id="' + s.id + '" data-pid="' + p.id + '"' +
-        (p.status === "consider" ? " checked" : "") + "><span>" + esc(p.name) +
-        (p.role ? ' <span style="color:var(--text-3)">' + esc(p.role) + "</span>" : "") + "</span></label>").join("") +
-      "</div></div>" : "") +
-    '<div class="quick-actions">' +
-      '<button class="btn" data-act="quick-full" data-id="' + s.id + '">Open the full sheet</button>' +
-      '<button class="btn btn-primary" data-act="quick-close">Done</button>' +
-    "</div></div>";
 }
 
 /* Side by side, because choosing five from nine is not a vertical task. */
@@ -2640,6 +2584,12 @@ function renderSheet(){
   const form = formOf(s);
   const f = (k) => "show:" + s.id + ":" + k;
   const today = new Date().toISOString().slice(0, 10);
+  // A re-render (e.g. after editing "Booked for") rebuilds this whole dialog from
+  // scratch, so this draft has to be read back from the outgoing DOM rather than
+  // recomputed from s.booked — otherwise it snaps back and quietly loses whatever
+  // date the nominator had actually typed here.
+  const existingRV = document.getElementById("rv-" + s.id);
+  const rvValue = existingRV ? existingRV.value : (s.booked || today);
 
   const crafts = CRAFTS.filter(c => c.form === "any" || c.form === form).map(c => {
     const v = s.crafts[c.key];
@@ -2688,7 +2638,11 @@ function renderSheet(){
   document.body.style.overflow = "hidden";
   wrap.innerHTML = '<div class="sheet" role="dialog" aria-modal="true" aria-label="Assessment: ' + esc(titleOf(s)) + '">' +
     '<div class="sheet-bar">' +
-      '<span class="eyebrow">Assessment sheet</span>' +
+      '<div style="flex:1 1 auto; min-width:0">' +
+        '<span class="eyebrow" style="display:block">Assessment sheet</span>' +
+        '<strong style="display:block; font-family:var(--display); font-size:17px; text-transform:uppercase; ' +
+          'letter-spacing:.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">' + esc(titleOf(s)) + "</strong>" +
+      "</div>" +
       (runStatus(s) === "closed" ? '<span class="chip chip-quiet">Closed ' + esc(fmtDate(s.closed)) + "</span>" : "") +
       '<button class="btn btn-sm" data-act="close-sheet">Done</button>' +
     "</div>" +
@@ -2706,7 +2660,7 @@ function renderSheet(){
         :
           '<div class="grid3">' +
             '<div class="field"><label for="rv-' + s.id + '">Record a viewing</label>' +
-              '<input class="inp" id="rv-' + s.id + '" type="date" value="' + esc(s.booked || today) + '"></div>' +
+              '<input class="inp" id="rv-' + s.id + '" type="date" value="' + esc(rvValue) + '"></div>' +
             '<div class="field" style="justify-content:flex-end">' +
               '<button class="btn btn-primary" data-act="record-seen" data-id="' + s.id + '">I saw it</button></div>' +
           "</div>" +
@@ -3097,6 +3051,10 @@ function setField(spec, value, type){
       if (value === "revival-musical"){ s.bookEligible = false; s.scoreEligible = false; }
       if (value === "new-musical"){ s.bookEligible = true; s.scoreEligible = true; }
     }
+    else if (p[2] === "seen" && value && value > todayISO()){
+      toast("A viewing can’t be logged ahead of today.");
+      return;
+    }
     else s[p[2]] = value;
     queueSave("show", s.id);
     paintStrip();
@@ -3120,17 +3078,6 @@ document.addEventListener("input", e => {
     return;
   }
   if (t.dataset && t.dataset.act === "intake-text"){ intake.text = t.value; return; }
-  if (t.dataset && t.dataset.act === "quick-search"){
-    quickQuery = t.value.trim();
-    clearTimeout(queryTimer);
-    queryTimer = setTimeout(() => {
-      const at = t.selectionStart;
-      renderQuick();
-      const box = document.querySelector("#quickSearch");
-      if (box){ box.focus(); try { box.setSelectionRange(at, at); } catch {} }
-    }, 200);
-    return;
-  }
   if (!t.dataset || !t.dataset.field) return;
   // Record every keystroke, re-render nothing: a re-render here would take the caret with it.
   setField(t.dataset.field, t.type === "checkbox" ? t.checked : t.value, t.dataset.type);
@@ -3146,10 +3093,20 @@ document.addEventListener("change", e => {
   if (act === "jump-cat"){
     const id = t.value;
     if (!id) return;
+    t.value = "";
     openCats.add(id);
     render();
     const target = document.querySelector('[data-act="toggle-cat"][data-id="' + id + '"]');
-    if (target) target.scrollIntoView({behavior:"smooth", block:"start"});
+    if (target){
+      // The masthead is sticky, so scrollIntoView's own alignment would tuck
+      // the destination straight underneath it — offset by its real height,
+      // which varies with viewport width, rather than a guessed constant.
+      const header = document.querySelector(".masthead");
+      const headerH = header ? header.getBoundingClientRect().height : 0;
+      const y = target.getBoundingClientRect().top + window.scrollY - headerH - 12;
+      window.scrollTo({top:Math.max(0, y), behavior:"smooth"});
+      target.focus({preventScroll:true});
+    }
     return;
   }
   if (!t.dataset || !t.dataset.field) return;
@@ -3205,7 +3162,9 @@ document.addEventListener("click", async e => {
     const s = getShow(el.dataset.id);
     if (!s) return;
     const inp = document.querySelector("#rv-" + s.id);
-    s.seen = (inp && inp.value) || new Date().toISOString().slice(0, 10);
+    const val = (inp && inp.value) || todayISO();
+    if (val > todayISO()){ toast("A viewing can’t be logged ahead of today."); return; }
+    s.seen = val;
     queueSave("show", s.id);
     renderSheet(); render({keepSheet:true});
     toast("Logged as seen on " + fmtDate(s.seen));
@@ -3271,38 +3230,6 @@ document.addEventListener("click", async e => {
   }
 
   if (act === "clear-query"){ query = ""; render(); return; }
-
-  /* ---- quick log ---- */
-  if (act === "quick-open"){
-    if (!shows.length){ toast("No productions to log yet."); return; }
-    quickPicking = true; quickQuery = "";
-    renderQuick();
-    const box = document.querySelector("#quickSearch");
-    if (box) box.focus();
-    return;
-  }
-  if (act === "quick-pick"){
-    quickFor = el.dataset.id; quickPicking = false;
-    const s = getShow(quickFor);
-    if (s && !s.seen){ s.seen = new Date().toISOString().slice(0, 10); queueSave("show", s.id); }
-    renderQuick(); render({keepSheet:true});
-    return;
-  }
-  if (act === "quick-close"){ quickFor = null; quickPicking = false; renderQuick(); render(); return; }
-  if (act === "quick-full"){
-    openShowId = el.dataset.id; quickFor = null; quickPicking = false;
-    renderQuick(); renderSheet();
-    return;
-  }
-  if (act === "quick-cast"){
-    const show = getShow(el.dataset.id);
-    const perf = show && show.performances.find(p => p.id === el.dataset.pid);
-    if (!perf) return;
-    perf.status = el.checked ? "consider" : "";
-    queueSave("show", show.id);
-    paintStrip();
-    return;
-  }
 
   /* ---- compare ---- */
   if (act === "compare"){ compareCat = el.dataset.id; render(); window.scrollTo({top:0, behavior:"instant"}); return; }
@@ -3577,7 +3504,6 @@ function render(opts){
     : renderBallot();
   if (!recovery) paintStrip();
   paintSaveState();
-  renderQuick();
   paintStorageWarning();
   if (!opts.keepSheet) renderSheet();
 }
